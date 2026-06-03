@@ -67,7 +67,10 @@ Jika Anda ingin mulai dari satu toko lalu punya ruang untuk berkembang ke banyak
         ];
 
         foreach ($posts as $postData) {
-            Post::create($postData);
+            Post::updateOrCreate(
+                ['slug' => $postData['slug']],
+                $postData
+            );
         }
     }
 }
