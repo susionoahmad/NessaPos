@@ -5,6 +5,12 @@ export interface BridgeConfig {
     token: string
 }
 
+export interface BridgeConnectionStatus {
+    ok: boolean
+    baseURL: string
+    message?: string
+}
+
 const getBridgeConfig = (): BridgeConfig => {
     // These will be saved in localStorage after we fetch settings once
     return {
@@ -13,10 +19,20 @@ const getBridgeConfig = (): BridgeConfig => {
     }
 }
 
-const bridgeApi = () => {
+const getBridgeBaseUrls = () => {
+    const { port } = getBridgeConfig()
+    return [
+        `http://127.0.0.1:${port}`,
+        `http://localhost:${port}`,
+        `http://[::1]:${port}`,
+    ]
+}
+
+const bridgeApi = (baseURL?: string) => {
     const config = getBridgeConfig()
     return axios.create({
-        baseURL: `http://127.0.0.1:${config.port}`,
+        baseURL: baseURL || getBridgeBaseUrls()[0],
+        timeout: 5000,
         headers: {
             'X-Bridge-Token': config.token,
             'Content-Type': 'application/json'
@@ -24,11 +40,45 @@ const bridgeApi = () => {
     })
 }
 
+const findBridgeBaseUrl = async () => {
+    const errors: string[] = []
+
+    for (const baseURL of getBridgeBaseUrls()) {
+        try {
+            const res = await bridgeApi(baseURL).get('/status')
+            if (res.data?.status === 'ok') {
+                return { ok: true, baseURL } as BridgeConnectionStatus
+            }
+            errors.push(`${baseURL}: status tidak valid`)
+        } catch (error: any) {
+            const status = error?.response?.status
+            errors.push(`${baseURL}: ${status ? `HTTP ${status}` : error?.message || 'gagal terhubung'}`)
+        }
+    }
+
+    const { port } = getBridgeConfig()
+    const httpsHint = window.location.protocol === 'https:'
+        ? ' Jika POS dibuka dari HTTPS/domain online, pastikan aplikasi Desktop/Bridge sudah versi terbaru agar header Private Network Access aktif.'
+        : ''
+
+    return {
+        ok: false,
+        baseURL: getBridgeBaseUrls()[0],
+        message: (
+            `Bridge tidak merespons di port ${port}. ` +
+            'Pastikan aplikasi NessaPOS Desktop sedang berjalan di PC kasir, port bridge sama dengan Pengaturan, lalu restart aplikasi desktop.' +
+            httpsHint +
+            ` Detail: ${errors.join('; ')}`
+        )
+    } as BridgeConnectionStatus
+}
+
 /**
- * Detects if we are running inside Wails environment
+ * Detects if we are running inside Wails desktop (bindings injected at runtime).
  */
 export const isWails = (): boolean => {
-    return (window as any).runtime !== undefined
+    const w = window as { runtime?: object; go?: object }
+    return Boolean(w.go || w.runtime)
 }
 
 const formatBridgeError = (error: any) => {
@@ -36,17 +86,26 @@ const formatBridgeError = (error: any) => {
         return `Bridge error ${error.response.status}: ${JSON.stringify(error.response.data)}`
     }
     if (error?.request) {
-        return `Bridge did not respond. Port atau bridge tidak berjalan.`
+        const { port } = getBridgeConfig()
+        return (
+            `Bridge tidak merespons di http://127.0.0.1:${port}. ` +
+            'Pastikan aplikasi NessaPOS Desktop (Wails) sedang berjalan di PC ini, ' +
+            'port bridge sama dengan Pengaturan, lalu restart aplikasi desktop.'
+        )
     }
     return error?.message || 'Unknown bridge error'
 }
 
 export const bridgePrintReceipt = async (order: any) => {
     try {
-        await bridgeApi().post('/print/receipt', order)
+        const bridge = await findBridgeBaseUrl()
+        if (!bridge.ok) {
+            throw new Error(bridge.message)
+        }
+        await bridgeApi(bridge.baseURL).post('/print/receipt', order)
         return true
     } catch (e: any) {
-        const msg = formatBridgeError(e)
+        const msg = e?.message || formatBridgeError(e)
         console.error("Bridge print failed:", msg)
         throw new Error(msg)
     }
@@ -54,10 +113,14 @@ export const bridgePrintReceipt = async (order: any) => {
 
 export const bridgeKickDrawer = async () => {
     try {
-        await bridgeApi().post('/drawer/kick', {})
+        const bridge = await findBridgeBaseUrl()
+        if (!bridge.ok) {
+            throw new Error(bridge.message)
+        }
+        await bridgeApi(bridge.baseURL).post('/drawer/kick', {})
         return true
     } catch (e: any) {
-        const msg = formatBridgeError(e)
+        const msg = e?.message || formatBridgeError(e)
         console.error("Bridge kick drawer failed:", msg)
         throw new Error(msg)
     }
@@ -65,10 +128,14 @@ export const bridgeKickDrawer = async () => {
 
 export const bridgePrintSessionOpen = async (req: any) => {
     try {
-        await bridgeApi().post('/print/session-open', req)
+        const bridge = await findBridgeBaseUrl()
+        if (!bridge.ok) {
+            throw new Error(bridge.message)
+        }
+        await bridgeApi(bridge.baseURL).post('/print/session-open', req)
         return true
     } catch (e: any) {
-        const msg = formatBridgeError(e)
+        const msg = e?.message || formatBridgeError(e)
         console.error("Bridge session open print failed:", msg)
         throw new Error(msg)
     }
@@ -76,20 +143,24 @@ export const bridgePrintSessionOpen = async (req: any) => {
 
 export const bridgePrintSessionClose = async (req: any) => {
     try {
-        await bridgeApi().post('/print/session-close', req)
+        const bridge = await findBridgeBaseUrl()
+        if (!bridge.ok) {
+            throw new Error(bridge.message)
+        }
+        await bridgeApi(bridge.baseURL).post('/print/session-close', req)
         return true
     } catch (e: any) {
-        const msg = formatBridgeError(e)
+        const msg = e?.message || formatBridgeError(e)
         console.error("Bridge session close print failed:", msg)
         throw new Error(msg)
     }
 }
 
+export const checkBridgeConnection = async () => {
+    return findBridgeBaseUrl()
+}
+
 export const checkBridgeStatus = async () => {
-    try {
-        const res = await bridgeApi().get('/status')
-        return res.data?.status === 'ok'
-    } catch (e) {
-        return false
-    }
+    const bridge = await findBridgeBaseUrl()
+    return bridge.ok
 }

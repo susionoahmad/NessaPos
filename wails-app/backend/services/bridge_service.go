@@ -22,15 +22,12 @@ func NewBridgeService(p *PrintService, s *SettingService) *BridgeService {
 }
 
 func (s *BridgeService) Start() {
+	port := 12348
 	settings, err := s.settingService.GetSettings()
 	if err != nil {
-		log.Printf("Bridge: Gagal mengambil pengaturan: %v", err)
-		return
-	}
-
-	port := settings.BridgePort
-	if port == 0 {
-		port = 12348
+		log.Printf("Bridge: pengaturan belum ada, memakai port default %d: %v", port, err)
+	} else if settings.BridgePort != 0 {
+		port = settings.BridgePort
 	}
 
 	mux := http.NewServeMux()
@@ -61,6 +58,7 @@ func (s *BridgeService) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "X-Bridge-Token, Content-Type")
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)

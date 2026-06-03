@@ -530,22 +530,30 @@ const regenerateToken = () => {
 }
 
 const checkPrinterStatus = async () => {
-  if (printerConfig.value.method === 'wails') {
-    try {
-      const res = await fetch(`http://127.0.0.1:${printerConfig.value.port}/status`)
-      const data = await res.json()
-      printerStatus.value = data.status === 'ok'
-    } catch (e) {
-      printerStatus.value = false
-    }
-  } else {
+  if (printerConfig.value.method !== 'wails') {
     printerStatus.value = true // Browser/RawBT assume OK
+    return
+  }
+
+  if (isWailsApp.value) {
+    printerStatus.value = true
+    return
+  }
+
+  try {
+    const bridge = await checkBridgeConnection()
+    printerStatus.value = bridge.ok
+    if (!bridge.ok && bridge.message) {
+      console.warn('[Bridge] Status check failed:', bridge.message)
+    }
+  } catch {
+    printerStatus.value = false
   }
 }
 
 import ReceiptPreview from '../components/ReceiptPreview.vue'
 import { printReceipt } from '../utils/printer'
-import { isWails } from '../utils/bridge'
+import { checkBridgeConnection, isWails } from '../utils/bridge'
 
 const showTestReceipt = ref(false)
 const dummyOrder = ref({
@@ -589,18 +597,11 @@ const testThermalPrint = async () => {
 
 const checkBridgeStatus = async () => {
   try {
-    const port = form.value.bridge_port || 12348
-    // Use 127.0.0.1 directly to avoid IPv6 issues
-    const res = await fetch(`http://127.0.0.1:${port}/status`, { 
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {
-        'X-Bridge-Token': form.value.bridge_token
-      }
-    })
-    const data = await res.json()
-    if (data.status === 'ok') bridgeStatus.value = 'online'
-    else bridgeStatus.value = 'offline'
+    const bridge = await checkBridgeConnection()
+    bridgeStatus.value = bridge.ok ? 'online' : 'offline'
+    if (!bridge.ok && bridge.message) {
+      console.warn('[Bridge] Status check failed:', bridge.message)
+    }
   } catch (e) {
     bridgeStatus.value = 'offline'
   }

@@ -32,3 +32,5 @@ Alternatively, from the repo root you can run:
 
 - `wails.json` is configured to build the frontend assets from `../frontend-pos`.
 - If you build the SPA separately, ensure the output is placed into `wails-app/frontend/dist`.
+- **API URL:** set `frontend-pos/.env.production` (`VITE_API_URL=https://api.nessapos.com/api`) before `wails build`. URL ini ikut ke dalam `.exe`.
+- **CORS:** origin Wails (`wails://wails`) sudah diizinkan di `laravel-backend/config/cors.php`. Pastikan server production sudah `config:cache` setelah deploy.

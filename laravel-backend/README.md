@@ -92,3 +92,34 @@ Run local server:
 ```bash
 php artisan serve
 ```
+
+## Production `.env` (GCP) — CORS & API
+
+```env
+APP_URL=https://api.nessapos.com
+FRONTEND_URL=https://pos.nessapos.com
+LANDING_URL=https://nessapos.com
+CORS_ALLOWED_ORIGINS=https://pos.nessapos.com,https://nessapos.com
+SANCTUM_STATEFUL_DOMAINS=pos.nessapos.com,nessapos.com
+```
+
+Setelah ubah `.env` atau `config/cors.php`:
+
+```bash
+php artisan config:clear
+php artisan config:cache
+```
+
+## Desktop app — URL API tertanam saat build
+
+Wails membundle SPA dengan `VITE_API_URL` dari `frontend-pos/.env.production` (bukan `.env` lokal).
+
+```bash
+cd frontend-pos
+# pastikan .env.production: VITE_API_URL=https://api.nessapos.com/api
+npm run build:wails
+cd ../wails-app
+wails build
+```
+
+Jika desktop masih memanggil `localhost:8000`, rebuild dengan langkah di atas.

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '../api'
+import api, { getApiUrl } from '../api'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(JSON.parse(localStorage.getItem('user') || 'null'))
@@ -42,8 +42,9 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: true }
     } catch (e: any) {
       console.error("Login failed", e)
+      const apiUrl = getApiUrl()
       const fallbackMessage = e.request
-        ? 'Tidak bisa terhubung ke API. Pastikan backend Laravel berjalan dan CORS mengizinkan aplikasi desktop.'
+        ? `Tidak bisa terhubung ke ${apiUrl}. Periksa: backend aktif, URL API benar (rebuild app desktop jika perlu), firewall/SSL, dan CORS di server.`
         : 'Terjadi kesalahan pada server'
 
       return { 

@@ -1,4 +1,4 @@
-import { isWails, bridgeKickDrawer, bridgePrintReceipt } from './bridge'
+import { isWails, bridgeKickDrawer, bridgePrintReceipt, checkBridgeStatus } from './bridge'
 import { KickDrawer, PrintReceiptThermal } from '../../wailsjs/go/api/API'
 import { formatCurrency } from './format'
 
@@ -44,6 +44,14 @@ const handleWailsPrint = async (order: any, options: PrintOptions) => {
         await KickDrawer()
       }
     } else {
+      const bridgeOk = await checkBridgeStatus()
+      if (!bridgeOk) {
+        const port = localStorage.getItem('bridge_port') || '12348'
+        throw new Error(
+          `Aplikasi desktop tidak terdeteksi dan bridge offline (port ${port}). ` +
+          'Buka NessaPOS Desktop di PC kasir, atau di browser ubah metode cetak ke "Browser Print".'
+        )
+      }
       await bridgePrintReceipt(order)
       if (options.kickDrawer) {
         await bridgeKickDrawer()
