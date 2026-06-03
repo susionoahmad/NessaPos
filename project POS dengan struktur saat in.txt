@@ -1,0 +1,170 @@
+project POS dengan struktur saat ini:
+
+* frontend (Vue SPA berisi halaman POS seperti POS.vue, Dashboard.vue, dll)
+* laravel-backend (Laravel API)
+* backend (untuk print service dan brigde service)
+* wails-app (Go, untuk desktop app)
+
+Saya ingin melakukan refactor menjadi arsitektur production-ready dengan pemisahan:
+
+* Landing page + blog (SEO + affiliate)
+* POS app (SPA terpisah)
+* Backend API Laravel
+* Wails desktop sebagai client
+
+🎯 TARGET ARSITEKTUR:
+
+* domain.com → landing + blog (deploy ke Vercel)
+* app.domain.com → POS app (deploy ke Vercel)
+* api.domain.com → Laravel backend (deploy ke GCP)
+* Wails desktop → load https://app.domain.com
+
+🎯 TUGAS YANG HARUS DILAKUKAN:
+
+1. PECAH FRONTEND
+   Pisahkan folder frontend menjadi:
+
+* frontend-landing/
+
+  * berisi landing page + blog (gunakan Next.js)
+  * halaman:
+
+    * /
+    * /blog
+    * /blog/[slug]
+
+* frontend-pos/
+
+  * berisi Vue SPA POS (pindahkan dari frontend lama)
+ 
+Pastikan:
+
+* routing Vue tetap berjalan
+* struktur tetap rapi
+* tidak ada dependensi ke landing
+
+---
+
+2. KONVERSI LANDING KE NEXT.JS
+
+* Buat project Next.js di frontend-landing
+* Landing page berisi:
+
+  * Hero section (promosi POS)
+  * CTA → arah ke https://app.domain.com
+* Blog:
+
+  * dynamic route [slug]
+  * SEO friendly
+  * bisa isi konten affiliate
+
+---
+
+3. KONFIGURASI POS (VUE)
+
+* Set base URL production:
+
+```js
+const API_URL = "https://api.domain.com"
+```
+
+* Gunakan environment:
+  .env.production
+
+---
+
+4. LARAVEL BACKEND (GCP)
+
+* Aktifkan CORS untuk:
+
+  * domain.com
+  * app.domain.com
+
+* Optimasi:
+
+  * config:cache
+  * route:cache
+
+---
+
+5. SETUP WAILS
+
+* Update URL:
+
+```go
+url := os.Getenv("APP_URL")
+if url == "" {
+    url = "http://localhost:5173"
+}
+runtime.WindowSetURL(ctx, url)
+```
+
+Production:
+APP_URL=https://app.domain.com
+
+---
+
+6. DEPLOYMENT VERCEL
+
+Project 1:
+
+* folder: frontend-landing
+* domain: domain.com
+
+Project 2:
+
+* folder: frontend-pos
+* domain: app.domain.com
+
+---
+
+7. DNS SETUP
+
+Tambahkan:
+
+* domain.com → Vercel
+* app.domain.com → Vercel
+* api.domain.com → GCP IP
+
+---
+
+8. NGINX (GCP)
+
+* arahkan api.domain.com ke Laravel public/
+
+---
+
+9. STRUKTUR FINAL:
+
+project-root/
+├── frontend-landing/
+├── frontend-pos/
+├── laravel-backend/
+├── wails-app/
+├── go-print-service/
+---
+
+10. OUTPUT YANG DIHARAPKAN:
+
+* struktur folder final
+* contoh config vite
+* contoh config next.js
+* contoh CORS Laravel
+* contoh Nginx config
+* langkah deploy step-by-step
+* cara testing local & production
+
+---
+
+🎯 CATATAN PENTING:
+
+* Jangan gabungkan landing dan POS dalam 1 project
+* POS harus ringan dan fokus ke transaksi
+* Landing harus SEO friendly
+* Wails hanya sebagai client (tidak punya backend sendiri)
+
+Buatkan hasil lengkap berupa:
+
+* struktur folder
+* contoh kode penting
+* langkah implementasi berurutan

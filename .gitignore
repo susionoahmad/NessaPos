@@ -1,0 +1,65 @@
+# =============================================================================
+# pos-online — monorepo (GitHub)
+#   frontend-landing, frontend-pos → Vercel
+#   laravel-backend → GCP VM (composer install di server)
+#   wails-app, pos-desktop, go-print-service → lokal / rilis desktop (opsional di repo)
+# =============================================================================
+
+# --- Dependencies (jangan commit; CI/Vercel/GCP install ulang) ---
+node_modules/
+laravel-backend/vendor/
+
+# --- Frontend Vercel: Next.js (frontend-landing) ---
+frontend-landing/.next/
+frontend-landing/out/
+frontend-landing/.vercel/
+
+# --- Frontend Vercel: Vite (frontend-pos) ---
+frontend-pos/dist/
+
+# --- Environment & secrets (pakai .env.example + env di Vercel / VM) ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# --- Laravel (GCP): runtime & cache (laravel-backend/.gitignore juga berlaku) ---
+laravel-backend/.phpunit.cache
+laravel-backend/.phpunit.result.cache
+laravel-backend/public/hot
+laravel-backend/public/storage
+laravel-backend/storage/*.key
+laravel-backend/auth.json
+laravel-backend/Homestead.json
+laravel-backend/Homestead.yaml
+
+# --- Desktop / Go build artifacts ---
+build/bin/
+build/windows/
+build/darwin/
+wails-app/build/
+go-print-service/bin/
+**/PRIVATE_KEY
+**/licenses.csv
+
+# --- Backup & output lokal ---
+backups/
+out/
+
+# --- IDE & OS ---
+.idea/
+.vscode/
+.fleet/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Logs & debug ---
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Legacy path (struktur lama) ---
+frontend/dist

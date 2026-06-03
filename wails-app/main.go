@@ -1,0 +1,88 @@
+package main
+
+import (
+	"context"
+	"embed"
+	"log"
+	"path/filepath"
+	"pos-desktop/backend/api"
+	"pos-desktop/backend/database"
+	"pos-desktop/backend/repository"
+	"pos-desktop/backend/services"
+
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
+)
+
+//go:embed all:frontend/dist
+var assets embed.FS
+
+func main() {
+	// Initialize Database
+	database.InitDB()
+
+	// Initialize Repositories
+	userRepo := repository.NewUserRepository(database.DB)
+	productRepo := repository.NewProductRepository(database.DB)
+	categoryRepo := repository.NewCategoryRepository(database.DB)
+	orderRepo := repository.NewOrderRepository(database.DB)
+	settingRepo := repository.NewSettingRepository(database.DB)
+	licenseService := services.NewLicenseService(settingRepo)
+	vaultRepo := repository.NewVaultRepository(database.DB)
+	sessionRepo := repository.NewSessionRepository(database.DB)
+	cashierRepo := repository.NewCashierRepository(database.DB)
+
+	// Initialize Services
+	userService := services.NewUserService(userRepo)
+	productService := services.NewProductService(productRepo, categoryRepo)
+	orderService := services.NewOrderService(orderRepo, sessionRepo, cashierRepo)
+	printService := services.NewPrintService()
+	settingService := services.NewSettingService(settingRepo)
+	vaultService := services.NewVaultService(vaultRepo)
+	sessionService := services.NewSessionService(sessionRepo, vaultService, cashierRepo)
+	backupService := services.NewBackupService(filepath.Join("database", "pos.db"))
+	bridgeService := services.NewBridgeService(printService, settingService)
+
+	// Start Local Bridge Server
+	bridgeService.Start()
+
+	// Initialize API Bindings
+	appApi := api.NewAPI(userService, productService, orderService, printService, settingService, vaultService, sessionService, licenseService, backupService)
+
+	// Create an instance of the app structure needed for hooks
+	app := NewApp()
+
+	// Create application with options
+	err := wails.Run(&options.App{
+		Title:  "NessaPOS Desktop",
+		Width:  1280,
+		Height: 800,
+		WindowStartState: options.Maximised,
+		AssetServer: &assetserver.Options{
+			Assets: assets,
+		},
+		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnStartup: func(ctx context.Context) {
+			app.startup(ctx)
+			appApi.Startup(ctx)
+		},
+		OnShutdown: func(ctx context.Context) {
+			log.Println("Penerapan backup data sebelum shutdown...")
+			err := backupService.PerformBackup()
+			if err != nil {
+				log.Printf("Gagal melakukan backup: %v", err)
+			}
+		},
+		Windows: &windows.Options{},
+		Bind: []interface{}{
+			app,
+			appApi, // Expose API to frontend
+		},
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}

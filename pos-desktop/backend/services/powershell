@@ -1,0 +1,1 @@
+.\cmd\licensegen\bulk.ps1 -PivKeyFile ".\backend\services\PRIVATE_KEY" -IssuedAt "2026-03-15" -Expiry "2027-03-15" -InputCsv ".\backend\services\licenses.csv" -OutputDir ".\out"

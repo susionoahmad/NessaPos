@@ -1,0 +1,8 @@
+Promotion Manager diletakkan di dalam menu CMS & Marketing pada panel SuperAdmin. Tepatnya pada sub-tab kelima (paling kanan) setelah tab Device Manager. Di sana Anda bisa mengatur promo diskon (persentase atau nominal tetap) dan menghubungkannya dengan paket (Plan) yang sedang berjalan.
+
+Affiliate Link dirancang sangat fleksibel (Many-to-Many):
+
+Bukan hanya di 1 Blog: Satu link affiliate (misal: Printer Thermal 58mm Shopee) bisa Anda pasang di banyak artikel blog sekaligus. Anda cukup mencentang link tersebut saat mengedit Blog Post di CMS.
+Device Recommendation: Selain di blog, link affiliate tersebut juga bisa dipasang pada modul Device Recommendation. Jadi saat user melihat halaman rekomendasi perangkat, link marketplace Anda akan muncul di sana.
+Pusat Kontrol: Jika suatu saat link marketplace tersebut berubah, Anda cukup update di Affiliate Manager satu kali, dan semua artikel blog atau rekomendasi perangkat yang menggunakan link tersebut akan otomatis terperbarui.
+Jadi, Anda bisa membangun aset konten yang banyak (blog) dan semuanya merujuk ke link affiliate yang sama secara terpusat.

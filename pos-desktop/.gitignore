@@ -1,0 +1,7 @@
+build/bin
+node_modules
+frontend/dist
+# Sertifikat & Kunci Keamanan
+**/PRIVATE_KEY
+backend/services/licenses.csv
+*.bat
