@@ -32,17 +32,118 @@ export default function PanduanPage() {
 
         <section id="pengaturan">
           <h2>1. Cara Setup di Menu Pengaturan</h2>
-          <p>Setelah login pertama kali, lengkapi identitas bisnis Anda agar struk terlihat profesional:</p>
-          <ul>
-            <li>Buka menu <strong>Pengaturan</strong> di sidebar kiri aplikasi POS.</li>
-            <li><strong>Identitas Toko:</strong> Isi Nama, Alamat, dan Telepon. Bagian ini wajib diisi karena akan muncul di bagian atas struk.</li>
-            <li><strong>Logo Struk:</strong> Unggah file gambar logo Anda. Disarankan menggunakan file PNG dengan latar belakang putih/transparan. Logo akan muncul otomatis di setiap struk transaksi.</li>
-            <li><strong>Digit Harga (Desimal):</strong> Pilih apakah Anda ingin menampilkan angka di belakang koma. Jika Anda menjual barang dengan harga bulat, pilih <strong>0 Digit</strong> untuk tampilan yang lebih bersih (e.g. Rp 50.000).</li>
-          </ul>
+          <p>Setelah login pertama kali sebagai Admin, buka menu <strong>Pengaturan</strong> di sidebar kiri. Lengkapi semua bagian di bawah ini sebelum mulai berjualan.</p>
+
+          {/* Tab Identitas Toko */}
+          <div className="affiliate-section" style={{ background: '#f8fafc', borderLeft: '4px solid #22c55e', marginTop: '24px' }}>
+            <h3 style={{ marginTop: 0 }}>🏪 Tab: Identitas &amp; Info Toko</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', width: '30%' }}>Pengaturan</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Nama Toko</td>
+                  <td style={{ padding: '8px 12px' }}>Nama bisnis Anda. Akan muncul di baris pertama setiap struk.</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Alamat &amp; Telepon</td>
+                  <td style={{ padding: '8px 12px' }}>Informasi kontak toko. Muncul di bawah nama pada struk.</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Logo Struk</td>
+                  <td style={{ padding: '8px 12px' }}>Upload gambar logo (PNG transparan/putih, maks 1MB). Logo muncul di atas nama toko. Untuk printer thermal, disarankan logo hitam-putih agar tercetak tajam.</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Digit Harga</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    Atur presisi harga yang ditampilkan di struk dan layar kasir:
+                    <ul style={{ margin: '5px 0', paddingLeft: '18px' }}>
+                      <li><strong>0 Digit</strong> — Harga bulat, contoh: <code>Rp 50.000</code> (paling umum)</li>
+                      <li><strong>1 Digit</strong> — contoh: <code>Rp 50.000,5</code></li>
+                      <li><strong>2 Digit</strong> — contoh: <code>Rp 50.000,50</code></li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Sistem Pajak</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    Pilih cara pajak dibebankan:
+                    <ul style={{ margin: '5px 0', paddingLeft: '18px' }}>
+                      <li><strong>Inclusive (Sudah Termasuk)</strong> — Harga yang tertera sudah termasuk pajak. Struk akan menampilkan rincian pajak yang sudah ada di dalam harga.</li>
+                      <li><strong>Exclusive (Ditambahkan di Akhir)</strong> — Pajak dihitung dan ditambahkan di atas subtotal. Cocok untuk restoran/kafe yang menerapkan Service Charge/PPN terpisah.</li>
+                    </ul>
+                    Jika tidak ada pajak, isi Tarif Pajak dengan <strong>0</strong>.
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Tarif Pajak (%)</td>
+                  <td style={{ padding: '8px 12px' }}>Masukkan angka persentase saja, tanpa simbol %. Contoh: untuk PPN 11%, isi <strong>11</strong>. Untuk tidak ada pajak, isi <strong>0</strong>.</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Ukuran Kertas Struk</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    Sesuaikan dengan lebar kertas printer thermal Anda:
+                    <ul style={{ margin: '5px 0', paddingLeft: '18px' }}>
+                      <li><strong>58mm</strong> — Printer portabel/bluetooth kecil (umum untuk mobile)</li>
+                      <li><strong>80mm</strong> — Printer desktop standar kasir (paling umum)</li>
+                    </ul>
+                    Salah pilih ukuran akan membuat teks terpotong atau ada spasi berlebih.
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>Laci Kasir (Cash Drawer)</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <ul style={{ margin: '5px 0', paddingLeft: '18px' }}>
+                      <li><strong>Aktif</strong> — Laci uang akan otomatis terbuka setiap kali ada transaksi tunai yang berhasil. Pastikan laci sudah terhubung ke printer via kabel RJ11/RJ12.</li>
+                      <li><strong>Nonaktif</strong> — Laci tidak terbuka otomatis. Pilih ini jika Anda tidak memiliki laci kasir atau menggunakan laci manual.</li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Teks Kaki Struk */}
+          <div className="affiliate-section" style={{ background: '#f8fafc', borderLeft: '4px solid #94a3b8', marginTop: '16px' }}>
+            <h3 style={{ marginTop: 0 }}>✍️ Teks Kaki Struk (Footer)</h3>
+            <p>Pesan yang muncul di bagian paling bawah setiap struk. Contoh: <em>"Terima kasih, selamat datang kembali!"</em> atau nomor WA untuk komplain.</p>
+          </div>
+        </section>
+
+        <section id="daftar-kasir" style={{ marginTop: '60px' }}>
+          <h2>2. Daftarkan Akun Kasir</h2>
+          <p>Setelah pengaturan toko selesai, langkah wajib berikutnya adalah mendaftarkan akun untuk setiap kasir yang akan menggunakan sistem.</p>
+
+          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
+            <p style={{ margin: 0, fontWeight: 'bold', color: '#c2410c' }}>⚠️ Mengapa Ini Wajib?</p>
+            <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#c2410c' }}>
+              Admin <strong>tidak bisa</strong> membuka sesi kasir. Kasir harus login dengan akun sendiri untuk dapat membuka sesi, menerima transaksi, dan mencetak struk. Tanpa kasir terdaftar, sistem tidak bisa digunakan untuk transaksi.
+            </p>
+          </div>
+
+          <div className="affiliate-section" style={{ background: '#f0f9f6', borderLeft: '4px solid #22c55e', marginTop: '24px' }}>
+            <h3 style={{ marginTop: 0 }}>Langkah Mendaftarkan Kasir:</h3>
+            <ol>
+              <li>Login sebagai <strong>Admin</strong>, buka menu <strong>Pengaturan {'>'} Daftar Pengguna</strong>.</li>
+              <li>Klik tombol <strong>"Tambah Kasir"</strong>.</li>
+              <li>Isi <strong>Username</strong> dan <strong>Password</strong> untuk kasir tersebut.</li>
+              <li>Klik <strong>Simpan</strong>. Akun kasir siap digunakan.</li>
+              <li>Berikan username dan password tersebut kepada kasir Anda.</li>
+              <li>Kasir login di <strong>alamat yang sama</strong> ({'"'}pos-nessapos.vercel.app{'"'} atau alamat domain Anda), lalu pilih menu <strong>Buka Sesi Kasir</strong> untuk mulai bekerja.</li>
+            </ol>
+
+            <div style={{ background: '#dcfce7', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', fontSize: '14px' }}>
+              <strong>💡 Tips:</strong> Anda bisa mendaftarkan lebih dari satu kasir. Setiap kasir memiliki sesi dan laporan transaksi masing-masing yang bisa difilter di menu Laporan.
+            </div>
+          </div>
         </section>
 
         <section id="printer" style={{ marginTop: '60px' }}>
-          <h2>2. Panduan Setup Printer Thermal</h2>
+          <h2>3. Panduan Setup Printer Thermal</h2>
           <p>NessaPOS mendukung berbagai cara untuk mencetak struk tergantung pada perangkat yang Anda gunakan.</p>
           
           <div className="affiliate-section" style={{ background: '#f0f9f6', borderLeft: '4px solid #1f7a6a', marginTop: '24px' }}>
@@ -88,7 +189,7 @@ export default function PanduanPage() {
         <div className="article-cta" style={{ marginTop: '60px' }}>
           <h2>Butuh Bantuan Lebih Lanjut?</h2>
           <p>Jika Anda mengalami kendala teknis saat setup, tim support kami siap membantu Anda melalui WhatsApp.</p>
-          <Link href="/#kontak" className="button">Tanya Support</Link>
+          <Link href="/kontak" className="button">Tanya Support</Link>
         </div>
       </section>
 
