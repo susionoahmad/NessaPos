@@ -72,19 +72,26 @@ class SettingController extends Controller
             'bridge_port' => 'nullable|integer',
             'allowed_origins' => 'nullable|string',
             'decimal_digits' => 'nullable|integer|min:0|max:2',
-            'receipt_logo' => 'nullable|image|max:1024'
+            'receipt_logo' => $request->hasFile('receipt_logo') ? 'image|max:1024' : 'nullable'
         ];
 
         $data = $request->all();
 
         // Handle File Upload for receipt_logo
         if ($request->hasFile('receipt_logo')) {
-            // Delete old logo if exists
             if ($setting->receipt_logo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($setting->receipt_logo);
             }
             $path = $request->file('receipt_logo')->store('logos', 'public');
             $data['receipt_logo'] = $path;
+        } elseif ($request->exists('receipt_logo') && $request->receipt_logo == '') {
+            if ($setting->receipt_logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($setting->receipt_logo);
+            }
+            $data['receipt_logo'] = null;
+        } else {
+            // If no new file and no removal, don't update receipt_logo
+            unset($data['receipt_logo']);
         }
 
         $validated = validator($data, $rules)->validate();
