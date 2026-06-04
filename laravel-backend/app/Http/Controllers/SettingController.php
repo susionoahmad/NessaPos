@@ -65,13 +65,13 @@ class SettingController extends Controller
             'tax_type' => 'sometimes|string',
             'receipt_text' => 'sometimes|string',
             'printer_name' => 'nullable|string',
-            'refresh_interval_sec' => 'nullable|integer',
-            'print_session_slip' => 'nullable|boolean',
-            'cash_drawer_enabled' => 'nullable|boolean',
+            'refresh_interval_sec' => 'sometimes|integer',
+            'print_session_slip' => 'sometimes',
+            'cash_drawer_enabled' => 'sometimes',
             'bridge_token' => 'nullable|string',
-            'bridge_port' => 'nullable|integer',
+            'bridge_port' => 'sometimes|integer',
             'allowed_origins' => 'nullable|string',
-            'decimal_digits' => 'nullable|integer|min:0|max:2',
+            'decimal_digits' => 'sometimes|integer',
             'receipt_logo' => $request->hasFile('receipt_logo') ? 'image|max:1024' : 'nullable'
         ];
 

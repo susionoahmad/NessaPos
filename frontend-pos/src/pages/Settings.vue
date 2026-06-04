@@ -734,7 +734,13 @@ const saveSettings = async () => {
       
       const val = (form.value as any)[key]
       if (val !== null && val !== undefined) {
-        fd.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : val)
+        // Ensure numeric fields are sent as numbers/strings without extra whitespace
+        // and Booleans are sent as 1 or 0
+        if (typeof val === 'boolean') {
+          fd.append(key, val ? '1' : '0')
+        } else {
+          fd.append(key, val.toString())
+        }
       }
     })
 
@@ -780,7 +786,11 @@ const saveSettings = async () => {
     logoPreview.value = ''
     setTimeout(() => { successMsg.value = '' }, 3000)
   } catch(e: any) {
-    const errorMsg = e.response?.data?.message || e.message
+    let errorMsg = e.response?.data?.message || e.message
+    if (e.response?.data?.errors) {
+      const details = Object.values(e.response.data.errors).flat().join('\n')
+      errorMsg += ':\n' + details
+    }
     alert("Gagal menyimpan: " + errorMsg)
   } finally {
     loading.value = false
