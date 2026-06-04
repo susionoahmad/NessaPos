@@ -261,10 +261,16 @@ onMounted(async () => {
     top: 0;
     left: -280px;
     height: 100vh;
+    height: 100dvh; /* Better handling for mobile address bars */
     z-index: 100;
     width: 260px;
     transition: left 0.3s ease;
     box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-footer {
+    padding: 15px 20px 25px; /* Added extra bottom padding for mobile safe area */
   }
   .sidebar.open {
     left: 0;

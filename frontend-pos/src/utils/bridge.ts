@@ -69,10 +69,13 @@ const findBridgeBaseUrl = async () => {
     }
 
     const { port } = getBridgeConfig()
-    const httpsHint = window.location.protocol === 'https:'
+    const isHttps = window.location.protocol === 'https:'
+    const httpsHint = isHttps
         ? (
-            ' Jika POS dibuka dari domain HTTPS, browser hanya bisa mencetak via aplikasi desktop jika akses ke localhost diizinkan. ' +
-            'Pastikan NessaPOS Desktop/Bridge berjalan, firewall mengizinkan port ini, lalu coba buka URL status bridge dari browser yang sama.'
+            '\n\n💡 CATATAN HTTPS: Browser sering memblokir akses ke localhost dari domain HTTPS. \n' +
+            'Jika kendala berlanjut, buka tab baru dan akses: http://127.0.0.1:' + port + '/status. \n' +
+            'Jika muncul "NessaPOS Local Bridge is running", maka website ini diblokir oleh browser. \n' +
+            'Klik ikon Gembok di baris alamat -> Site settings -> Insecure content -> Allow, lalu refresh.'
         )
         : ''
 
@@ -83,7 +86,7 @@ const findBridgeBaseUrl = async () => {
             `Bridge tidak merespons di port ${port}. ` +
             'Pastikan aplikasi NessaPOS Desktop sedang berjalan di PC kasir, port bridge sama dengan Pengaturan, lalu restart aplikasi desktop.' +
             httpsHint +
-            ` URL cek: http://127.0.0.1:${port}/status. Detail: ${errors.join('; ')}`
+            ` \n\nDetail: ${errors.join('; ')}`
         )
     } as BridgeConnectionStatus
 }

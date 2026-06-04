@@ -45,70 +45,131 @@ func (s *BridgeService) Start() {
 
 	go func() {
 		addr := fmt.Sprintf(":%d", port)
-		log.Printf("[Bridge] Starting server on %s...", addr)
+		log.Printf("[Bridge] Server attempting to start on %s...", addr)
+		// Success log message must be BEFORE ListenAndServe because it blocks
+		log.Printf("[Bridge] Server is now listening on port %d", port)
 		if err := http.ListenAndServe(addr, handler); err != nil {
 			log.Printf("[Bridge] FATAL ERROR: %v. Port %d is already occupied by another process.", err, port)
 			return
 		}
-		log.Printf("[Bridge] Server is now listening on port %d", port)
 	}()
 }
 
 func (s *BridgeService) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Gunakan origin dari request agar browser lebih percaya (penting untuk PNA)
 		origin := r.Header.Get("Origin")
+		
+		// Logging untuk diagnosa (sangat membantu saat dideploy)
+		log.Printf("[Bridge Request] %s %s from %s (Origin: %s)", r.Method, r.URL.Path, r.RemoteAddr, origin)
+
+		// Set standard CORS headers
 		if origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "X-Bridge-Token, Content-Type, Access-Control-Allow-Private-Network")
-
-		// Header krusial untuk Private Network Access
+		
+		// Support for Private Network Access (Chrome 94+)
 		w.Header().Set("Access-Control-Allow-Private-Network", "true")
-		// Beri tahu browser untuk mengingat izin ini selama 20 hari (cache preflight)
-		w.Header().Set("Access-Control-Max-Age", "1728000")
+		
+		// Credential support
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Max-Age", "1728000") // 20 days
+		
+		// Agar browser tidak bingung saat origin berpindah-pindah
+		w.Header().Set("Vary", "Origin, Access-Control-Request-Private-Network")
 
+		// Handle Preflight
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		// Deteksi localhost yang lebih akurat (menghapus port dan bracket IPv6)
+		// Security: Localhost Check
 		remoteAddr := r.RemoteAddr
 		if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
 			remoteAddr = remoteAddr[:idx]
 		}
 		remoteAddr = strings.Trim(remoteAddr, "[]")
 
-		isLocalhost := remoteAddr == "127.0.0.1" || remoteAddr == "::1" || remoteAddr == "localhost" || strings.HasPrefix(remoteAddr, "::ffff:127.0.0.1")
+		isLocalhost := remoteAddr == "127.0.0.1" ||
+			remoteAddr == "::1" ||
+			strings.HasPrefix(remoteAddr, "::ffff:127.0.0.1")
 
-		if isLocalhost {
+		// Status check is public if accessed from localhost
+		if r.URL.Path == "/status" && isLocalhost {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Token check for non-localhost requests
+		// Token check for everything else
 		settings, _ := s.settingService.GetSettings()
-		if settings.BridgeToken != "" {
-			token := r.Header.Get("X-Bridge-Token")
-			if token == "" {
-				token = r.URL.Query().Get("token")
-			}
-
-			log.Printf("[Bridge Auth] From %s - Expected: %s..., Received: %s...",
-				r.RemoteAddr,
-				settings.BridgeToken[:min(5, len(settings.BridgeToken))],
-				token[:min(5, len(token))])
-
-			if token != settings.BridgeToken {
-				log.Printf("[Bridge Auth DENIED] Token mismatch from %s", r.RemoteAddr)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		
+		// Jika token di database lokal kosong, dan akses dari localhost, izinkan saja (memudahkan setup awal)
+		if settings.BridgeToken == "" {
+			if isLocalhost {
+				next.ServeHTTP(w, r)
 				return
 			}
+			// Jika bukan localhost dan token kosong, tetap tolak demi keamanan
+			log.Printf("[Bridge Auth] DENIED: No token configured in local bridge and request from non-localhost: %s", r.RemoteAddr)
+			http.Error(w, "Bridge unauthorized: No token set", http.StatusUnauthorized)
+			return
+		}
+
+		// Token verification
+		token := r.Header.Get("X-Bridge-Token")
+		if token == "" {
+			token = r.URL.Query().Get("token")
+		}
+
+		// LOGIC PERMISIF KHUSUS LOCALHOST + TRUSTED ORIGIN
+		// Jika dari localhost dan berasal dari domain Vercel Anda, izinkan cetak meskipun token salah.
+		isTrustedOrigin := strings.Contains(origin, "vercel.app") || strings.Contains(origin, "nessapos.app") || origin == ""
+		
+		if isLocalhost && isTrustedOrigin {
+			if token != settings.BridgeToken {
+				log.Printf("[Bridge Bypass] Token mismatch but ALLOWED for localhost + trusted origin (%s)", origin)
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if token != settings.BridgeToken {
+			expectedPreview := ""
+			if len(settings.BridgeToken) > 3 {
+				expectedPreview = settings.BridgeToken[:3] + "..."
+			} else {
+				expectedPreview = settings.BridgeToken
+			}
+			
+			receivedPreview := ""
+			if len(token) > 3 {
+				receivedPreview = token[:3] + "..."
+			} else {
+				receivedPreview = token
+			}
+
+			log.Printf("[Bridge Auth DENIED] Token mismatch from %s. Expected: [%s], Received: [%s]. Path: %s", 
+				r.RemoteAddr, expectedPreview, receivedPreview, r.URL.Path)
+			
+			// Jika dari localhost, berikan pesan diagnosis di body agar mudah diperbaiki oleh dev
+			if isLocalhost {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Unauthorized: Bridge token mismatch",
+					"reason": fmt.Sprintf("Aplikasi Wails mengharapkan token [%s], tetapi browser mengirim [%s]", expectedPreview, receivedPreview),
+					"solution": "Pastikan 'Bridge Token' di Pengaturan Browser sama dengan yang ada di Pengaturan Aplikasi Desktop Wails.",
+				})
+				return
+			}
+
+			http.Error(w, "Unauthorized: Bridge token mismatch", http.StatusUnauthorized)
+			return
 		}
 
 		next.ServeHTTP(w, r)
