@@ -72,8 +72,11 @@
           <div class="mf-group">
             <label>Serial Key</label>
             <div class="input-with-action">
-              <input v-model="form.serial_key" placeholder="Contoh: NESSA-XXXX-XXXX-XXXX" />
-              <button v-if="!editingId" class="btn-secondary" @click="generateRandomKey">Random</button>
+              <input v-model="form.serial_key" placeholder="Contoh: NESSA-XXXX-XXXX-XXXX" readonly style="font-family: monospace; font-weight: 700; color: #38bdf8;" />
+              <button v-if="!editingId" class="btn-secondary" @click="generateRandomKey" title="Buat Key Baru">🔀 Random</button>
+              <button class="btn-secondary btn-copy-modal" @click="copyKey" title="Salin Serial Key">
+                {{ copied ? '✅ Disalin!' : '📋 Salin' }}
+              </button>
             </div>
           </div>
           <div class="mf-group">
@@ -114,6 +117,7 @@ const licenses = ref<any[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const showModal = ref(false)
+const copied = ref(false)
 const editingId = ref<number | null>(null)
 const formError = ref('')
 
@@ -236,6 +240,13 @@ const deleteLicense = async (id: number) => {
 const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text)
   alert('Serial Key disalin!')
+}
+
+const copyKey = () => {
+  if (!form.value.serial_key) return
+  navigator.clipboard.writeText(form.value.serial_key)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
 }
 
 const formatDate = (date: string) => {
@@ -406,7 +417,9 @@ const getStatusLabel = (lic: any) => {
   background: #1e293b;
 }
 .input-with-action { display: flex; gap: 8px; }
-.btn-secondary { background: rgba(255,255,255,0.1); border: none; color: white; padding: 0 12px; border-radius: 8px; cursor: pointer; }
+.btn-secondary { background: rgba(255,255,255,0.1); border: none; color: white; padding: 0 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.btn-copy-modal { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; font-size: 13px; padding: 0 14px; transition: all 0.2s; }
+.btn-copy-modal:hover { background: rgba(34, 197, 94, 0.25); }
 
 .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 .btn-cancel { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: 600; }

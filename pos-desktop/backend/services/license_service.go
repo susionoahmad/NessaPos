@@ -33,8 +33,8 @@ const (
 	licenseStatusTampered  = "tampered"
 	licenseStatusMissing   = "missing"
 
-	// URL server aktivasi Laravel Backend
-	activationServerURL = "http://localhost:8000/api/desktop/activate"
+	// URL server aktivasi Laravel Backend (GCP Production)
+	activationServerURL = "https://nessapos.kalkulatorin.com/api/desktop/activate"
 )
 
 type LicenseService struct {
@@ -153,29 +153,36 @@ func (s *LicenseService) ActivateOnline(serialKey string) error {
 	})
 
 	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Post(activationServerURL, "application/json", bytes.NewBuffer(reqBody))
+
+	req, err := http.NewRequest("POST", activationServerURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return errors.New("Gagal membuat request aktivasi.")
+	}
+	// PENTING: tambahkan Accept header agar Laravel selalu return JSON (bukan HTML)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return errors.New("Gagal menghubungi server aktivasi. Pastikan koneksi internet tersedia.")
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.New("Gagal membaca respon dari server")
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
 		var errResp struct {
 			Message string `json:"message"`
 		}
 		json.Unmarshal(body, &errResp)
-		
+
 		if errResp.Message != "" {
 			return errors.New(errResp.Message)
 		}
-		// Jika tidak ada pesan JSON, tampilkan mentahnya
 		return fmt.Errorf("Server Error (%d): %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return errors.New("Gagal membaca respon dari server")
 	}
 
 	// Simpan blob dan verifikasi

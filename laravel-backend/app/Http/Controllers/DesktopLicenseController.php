@@ -15,44 +15,50 @@ class DesktopLicenseController extends Controller
      */
     public function activate(Request $request)
     {
-        $request->validate([
-            'serial_key' => 'required|string',
-            'device_id' => 'required|string',
-        ]);
-
-        $license = DesktopLicense::where('serial_key', $request->serial_key)->first();
-
-        if (!$license) {
-            return response()->json(['message' => 'Serial key tidak ditemukan.'], 404);
-        }
-
-        if (!$license->is_active) {
-            return response()->json(['message' => 'Lisensi ini telah dinonaktifkan.'], 403);
-        }
-
-        // Lock to device_id if not already locked
-        if ($license->device_id && $license->device_id !== $request->device_id) {
-            return response()->json(['message' => 'Lisensi ini sudah terdaftar untuk perangkat lain.'], 403);
-        }
-
-        if (!$license->device_id) {
-            $license->device_id = $request->device_id;
-            $license->activated_at = now();
-            $license->save();
-        }
-
-        // Check expiry
-        if ($license->expiry_date && $license->expiry_date->isPast()) {
-            return response()->json(['message' => 'Lisensi ini telah kedaluwarsa.'], 403);
-        }
-
-        // Generate Signed License Blob
         try {
+            $request->validate([
+                'serial_key' => 'required|string',
+                'device_id'  => 'required|string',
+            ]);
+
+            $license = DesktopLicense::where('serial_key', $request->serial_key)->first();
+
+            if (!$license) {
+                return response()->json(['message' => 'Serial key tidak ditemukan.'], 404);
+            }
+
+            if (!$license->is_active) {
+                return response()->json(['message' => 'Lisensi ini telah dinonaktifkan.'], 403);
+            }
+
+            if ($license->device_id && $license->device_id !== $request->device_id) {
+                return response()->json(['message' => 'Lisensi ini sudah terdaftar untuk perangkat lain.'], 403);
+            }
+
+            if (!$license->device_id) {
+                $license->device_id = $request->device_id;
+                $license->activated_at = now();
+                $license->save();
+            }
+
+            if ($license->expiry_date && $license->expiry_date->isPast()) {
+                return response()->json(['message' => 'Lisensi ini telah kedaluwarsa.'], 403);
+            }
+
+            // Check private key is configured
+            $privateKeyBase64 = env('DESKTOP_LICENSE_PRIVATE_KEY');
+            if (!$privateKeyBase64) {
+                return response()->json(['message' => 'Konfigurasi server tidak lengkap: private key tidak ditemukan.'], 500);
+            }
+
             $blob = $this->generateSignedBlob($license);
             return response()->json(json_decode($blob), 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => 'Data tidak valid.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error("Failed to generate license blob: " . $e->getMessage());
-            return response()->json(['message' => 'Gagal menghasilkan sertifikat lisensi.'], 500);
+            Log::error("License activation error: " . $e->getMessage());
+            return response()->json(['message' => 'Gagal aktivasi: ' . $e->getMessage()], 500);
         }
     }
 
