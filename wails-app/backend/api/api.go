@@ -128,6 +128,9 @@ func (a *API) ImportExcel() error {
 }
 
 func (a *API) PerformBackup() error {
+	if a.backupService == nil {
+		return errors.New("backup lokal nonaktif untuk mode online")
+	}
 	return a.backupService.PerformBackup()
 }
 

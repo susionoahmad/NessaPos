@@ -42,6 +42,18 @@ npm install
 npm run build:wails
 ```
 
+## API Mode
+
+`frontend-pos` can be built against either local Laravel or the online Laravel API.
+
+```env
+VITE_API_MODE=local
+VITE_API_URL_LOCAL=http://localhost:8000/api
+VITE_API_URL_ONLINE=https://nessapos.kalkulatorin.com
+```
+
+Use `VITE_API_MODE=online` before deploying to Vercel or building the Wails app if cashier users must log in to the same online tenant database. The app still supports the old `VITE_API_URL` variable when `VITE_API_MODE` is empty.
+
 ## Auth workflow
 
 The POS SPA is configured to use Laravel Sanctum token-based authentication.

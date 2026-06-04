@@ -1,11 +1,16 @@
 import axios from 'axios'
 
-export const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+type ApiMode = 'local' | 'online'
 
-export const normalizeApiUrl = (url: string) => {
+const API_MODE = (import.meta.env.VITE_API_MODE || '').trim().toLowerCase() as ApiMode | ''
+const LOCAL_API_URL = import.meta.env.VITE_API_URL_LOCAL || 'http://localhost:8000/api'
+const ONLINE_API_URL = import.meta.env.VITE_API_URL_ONLINE || 'https://nessapos.kalkulatorin.com'
+const LEGACY_API_URL = import.meta.env.VITE_API_URL || ''
+
+export const normalizeApiUrl = (url: string): string => {
   const trimmed = url?.trim() || ''
   if (!trimmed) {
-    return DEFAULT_API_URL
+    return normalizeApiUrl(LOCAL_API_URL)
   }
   let normalized = trimmed.replace(/\/+$|^\s+|\s+$/g, '')
   if (!normalized.toLowerCase().endsWith('/api')) {
@@ -15,7 +20,15 @@ export const normalizeApiUrl = (url: string) => {
 }
 
 export const getApiUrl = () => {
-  return normalizeApiUrl(DEFAULT_API_URL)
+  if (API_MODE === 'online') {
+    return normalizeApiUrl(ONLINE_API_URL)
+  }
+
+  if (API_MODE === 'local') {
+    return normalizeApiUrl(LOCAL_API_URL)
+  }
+
+  return normalizeApiUrl(LEGACY_API_URL || LOCAL_API_URL)
 }
 
 const api = axios.create({

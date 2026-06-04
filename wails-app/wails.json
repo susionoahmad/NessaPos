@@ -4,7 +4,7 @@
   "outputfilename": "NessaPOS",
   "frontend:install": "npm --prefix ../../frontend-pos install",
   "frontend:build": "npm --prefix ../../frontend-pos run build:wails",
-  "frontend:dev:watcher": "npm --prefix ../../frontend-pos run dev -- --host 127.0.0.1 --port 5173",
+  "frontend:dev:watcher": "npm --prefix ../../frontend-pos run dev -- --host 127.0.0.1 --port 5173 --strictPort",
   "frontend:dev:serverUrl": "http://127.0.0.1:5173",
   "author": {
     "name": "susionoahmad",
