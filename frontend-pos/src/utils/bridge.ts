@@ -30,13 +30,25 @@ const getBridgeBaseUrls = () => {
 
 const bridgeApi = (baseURL?: string) => {
     const config = getBridgeConfig()
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+    }
+
+    if (config.token) {
+        headers['X-Bridge-Token'] = config.token
+    }
+
     return axios.create({
         baseURL: baseURL || getBridgeBaseUrls()[0],
         timeout: 5000,
-        headers: {
-            'X-Bridge-Token': config.token,
-            'Content-Type': 'application/json'
-        }
+        headers
+    })
+}
+
+const bridgeStatusApi = (baseURL: string) => {
+    return axios.create({
+        baseURL,
+        timeout: 5000
     })
 }
 
@@ -45,7 +57,7 @@ const findBridgeBaseUrl = async () => {
 
     for (const baseURL of getBridgeBaseUrls()) {
         try {
-            const res = await bridgeApi(baseURL).get('/status')
+            const res = await bridgeStatusApi(baseURL).get('/status')
             if (res.data?.status === 'ok') {
                 return { ok: true, baseURL } as BridgeConnectionStatus
             }

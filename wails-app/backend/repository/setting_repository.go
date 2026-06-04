@@ -15,16 +15,28 @@ func NewSettingRepository(db *sql.DB) *SettingRepository {
 
 func (r *SettingRepository) Get() (*models.Setting, error) {
 	var s models.Setting
-	err := r.DB.QueryRow("SELECT id, store_name, store_address, store_phone, tax_rate, tax_type, receipt_text, printer_name, refresh_interval_sec, print_session_slip, trial_start, last_run, license_blob FROM settings LIMIT 1").
-		Scan(&s.ID, &s.StoreName, &s.StoreAddress, &s.StorePhone, &s.TaxRate, &s.TaxType, &s.ReceiptText, &s.PrinterName, &s.RefreshIntervalSec, &s.PrintSessionSlip, &s.TrialStart, &s.LastRun, &s.LicenseBlob)
+	err := r.DB.QueryRow("SELECT id, store_name, store_address, store_phone, tax_rate, tax_type, receipt_text, printer_name, refresh_interval_sec, print_session_slip, bridge_token, bridge_port, allowed_origins, trial_start, last_run, license_blob FROM settings LIMIT 1").
+		Scan(&s.ID, &s.StoreName, &s.StoreAddress, &s.StorePhone, &s.TaxRate, &s.TaxType, &s.ReceiptText, &s.PrinterName, &s.RefreshIntervalSec, &s.PrintSessionSlip, &s.BridgeToken, &s.BridgePort, &s.AllowedOrigins, &s.TrialStart, &s.LastRun, &s.LicenseBlob)
 	if err != nil {
 		return nil, err
+	}
+	if s.BridgePort == 0 {
+		s.BridgePort = 12348
+	}
+	if s.AllowedOrigins == "" {
+		s.AllowedOrigins = "*"
 	}
 	return &s, nil
 }
 
 func (r *SettingRepository) Update(s models.Setting) error {
-	_, err := r.DB.Exec("UPDATE settings SET store_name=?, store_address=?, store_phone=?, tax_rate=?, tax_type=?, receipt_text=?, printer_name=?, refresh_interval_sec=?, print_session_slip=?, trial_start=?, last_run=?, license_blob=? WHERE id=?",
-		s.StoreName, s.StoreAddress, s.StorePhone, s.TaxRate, s.TaxType, s.ReceiptText, s.PrinterName, s.RefreshIntervalSec, s.PrintSessionSlip, s.TrialStart, s.LastRun, s.LicenseBlob, s.ID)
+	if s.BridgePort == 0 {
+		s.BridgePort = 12348
+	}
+	if s.AllowedOrigins == "" {
+		s.AllowedOrigins = "*"
+	}
+	_, err := r.DB.Exec("UPDATE settings SET store_name=?, store_address=?, store_phone=?, tax_rate=?, tax_type=?, receipt_text=?, printer_name=?, refresh_interval_sec=?, print_session_slip=?, bridge_token=?, bridge_port=?, allowed_origins=?, trial_start=?, last_run=?, license_blob=? WHERE id=?",
+		s.StoreName, s.StoreAddress, s.StorePhone, s.TaxRate, s.TaxType, s.ReceiptText, s.PrinterName, s.RefreshIntervalSec, s.PrintSessionSlip, s.BridgeToken, s.BridgePort, s.AllowedOrigins, s.TrialStart, s.LastRun, s.LicenseBlob, s.ID)
 	return err
 }
