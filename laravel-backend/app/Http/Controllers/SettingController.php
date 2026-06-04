@@ -75,9 +75,12 @@ class SettingController extends Controller
             'receipt_logo' => $request->hasFile('receipt_logo') ? 'image|max:1024' : 'nullable'
         ];
 
-        $data = $request->all();
+        // 1. Validate FIRST while receipt_logo is still an UploadedFile object
+        $validated = validator($request->all(), $rules)->validate();
+        
+        $data = $validated;
 
-        // Handle File Upload for receipt_logo
+        // 2. Then handle file storage
         if ($request->hasFile('receipt_logo')) {
             if ($setting->receipt_logo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($setting->receipt_logo);
@@ -90,13 +93,11 @@ class SettingController extends Controller
             }
             $data['receipt_logo'] = null;
         } else {
-            // If no new file and no removal, don't update receipt_logo
+            // Keep the old logo (don't include receipt_logo in update)
             unset($data['receipt_logo']);
         }
 
-        $validated = validator($data, $rules)->validate();
-
-        $setting->update($validated);
+        $setting->update($data);
 
         return response()->json($setting);
     }
