@@ -17,8 +17,9 @@ export default function PanduanPage() {
         <nav aria-label="Navigasi utama">
           <Link href="/#fitur">Fitur</Link>
           <Link href="/#harga">Paket</Link>
-          <Link href="/coba-gratis">Coba Gratis</Link>
-          <Link href="/blog">Blog</Link>
+          <Link href="/panduan">Panduan</Link>
+          <Link href="/kontak">Kontak</Link>
+          <Link href="/coba-gratis" className="nav-cta">Coba Gratis</Link>
         </nav>
       </header>
 
@@ -31,12 +32,12 @@ export default function PanduanPage() {
 
         <section id="pengaturan">
           <h2>1. Cara Setup di Menu Pengaturan</h2>
-          <p>Setelah login pertama kali, hal pertama yang harus Anda lakukan adalah melengkapi data toko Anda:</p>
+          <p>Setelah login pertama kali, lengkapi identitas bisnis Anda agar struk terlihat profesional:</p>
           <ul>
-            <li>Buka menu <strong>Pengaturan</strong> di sidebar POS.</li>
-            <li><strong>Profil Toko:</strong> Isi nama toko, alamat, dan nomor telepon yang akan muncul di struk.</li>
-            <li><strong>Logo Struk:</strong> Unggah logo toko Anda (disarankan format hitam putih untuk printer thermal).</li>
-            <li><strong>Digit Harga:</strong> Atur apakah Anda ingin menggunakan desimal atau tidak.</li>
+            <li>Buka menu <strong>Pengaturan</strong> di sidebar kiri aplikasi POS.</li>
+            <li><strong>Identitas Toko:</strong> Isi Nama, Alamat, dan Telepon. Bagian ini wajib diisi karena akan muncul di bagian atas struk.</li>
+            <li><strong>Logo Struk:</strong> Unggah file gambar logo Anda. Disarankan menggunakan file PNG dengan latar belakang putih/transparan. Logo akan muncul otomatis di setiap struk transaksi.</li>
+            <li><strong>Digit Harga (Desimal):</strong> Pilih apakah Anda ingin menampilkan angka di belakang koma. Jika Anda menjual barang dengan harga bulat, pilih <strong>0 Digit</strong> untuk tampilan yang lebih bersih (e.g. Rp 50.000).</li>
           </ul>
         </section>
 
@@ -46,37 +47,40 @@ export default function PanduanPage() {
           
           <div className="affiliate-section" style={{ background: '#f0f9f6', borderLeft: '4px solid #1f7a6a', marginTop: '24px' }}>
             <h3 style={{ marginTop: 0 }}>A. Browser Print (Kiosk Mode)</h3>
-            <p>Digunakan jika Anda ingin mencetak langsung dari Google Chrome tanpa muncul dialog print preview.</p>
+            <p>Paling praktis untuk PC Desktop yang hanya menggunakan satu printer thermal.</p>
             <ol>
-              <li>Tutup semua jendela Chrome yang sedang terbuka.</li>
-              <li>Klik kanan pada shortcut Chrome di Desktop, pilih <strong>Properties</strong>.</li>
-              <li>Pada kolom <strong>Target</strong>, tambahkan kode ini di akhir (setelah tanda petik): <code> --kiosk-printing</code>.</li>
-              <li>Klik Apply dan OK. Buka Chrome menggunakan shortcut tersebut.</li>
-              <li>Sekarang, saat Anda tekan Print di NessaPOS, struk akan langsung keluar ke printer default.</li>
+              <li>Tutup semua jendela Chrome. Klik kanan shortcut Chrome di Desktop {'>'} <strong>Properties</strong>.</li>
+              <li>Pada <strong>Target</strong>, tambahkan <code> --kiosk-printing</code> di bagian paling akhir.</li>
+              <li>Saat print di POS, struk akan keluar otomatis tanpa preview browser.</li>
             </ol>
           </div>
 
-          <div className="affiliate-section" style={{ background: '#f8faf9', borderLeft: '4px solid #4d5b6d', marginTop: '24px' }}>
-            <h3 style={{ marginTop: 0 }}>B. NessaPOS Bridge (Rekomendasi Desktop)</h3>
-            <p>Aplikasi pendukung untuk koneksi printer yang lebih stabil dan fitur "Silent Print" yang lebih canggih.</p>
+          <div className="affiliate-section" style={{ background: '#f0f4f9', borderLeft: '4px solid #0e7490', marginTop: '24px', padding: '20px' }}>
+            <h3 style={{ marginTop: 0 }}>B. NessaPOS Bridge (Rekomendasi Stabil)</h3>
+            <p>Metode tercanggih untuk mencetak tanpa batas ke berbagai merk printer thermal (USB/Bluetooth) di Windows.</p>
+            <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fde68a', marginBottom: '15px' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#92400e' }}>⚠️ KRUSIAL: Sinkronisasi Token Keamanan</p>
+              <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#92400e' }}>
+                Agar web browser diizinkan memerintahkan print ke komputer Anda, <b>TOKEN</b> yang ada di menu Pengaturan Web dan Aplikasi Desktop <b>WAJIB SAMA</b>.
+              </p>
+            </div>
             <ol>
-              <li>Download <strong>NessaPOS Bridge</strong> dari halaman download.</li>
-              <li>Install dan jalankan aplikasi tersebut di komputer kasir Anda.</li>
-              <li>Di aplikasi POS (Browser), masuk ke <strong>Pengaturan {'>'} Printer</strong>.</li>
-              <li>Pilih mode <strong>Bridge</strong> dan masukkan alamat local (biasanya <code>localhost:8080</code>).</li>
-              <li>Tes Print untuk memastikan koneksi berhasil.</li>
+              <li>Buka <strong>Pengaturan {'>'} Printer</strong> di aplikasi NessaPOS (di browser).</li>
+              <li>Cari bagian <strong>Bridge Token</strong>, klik tombol "Salin" atau buat baru jika masih kosong.</li>
+              <li>Buka aplikasi <strong>NessaPOS Desktop</strong> di PC Anda, masuk ke Pengaturan, dan <strong>Tempel (Paste)</strong> token tersebut.</li>
+              <li>Pastikan <strong>Port</strong> di Web dan Desktop sama (Default: <code>12348</code>).</li>
+              <li>Simpan di kedua sisi, lalu lakukan "Tes Print".</li>
             </ol>
           </div>
 
           <div className="affiliate-section" style={{ background: '#fffaf1', borderLeft: '4px solid #8f6647', marginTop: '24px' }}>
-            <h3 style={{ marginTop: 0 }}>C. Mobile Setup (RawBT)</h3>
-            <p>Digunakan untuk mencetak struk dari HP/Tablet Android menggunakan Printer Bluetooth.</p>
+            <h3 style={{ marginTop: 0 }}>C. Mobile Bluetooth (RawBT)</h3>
+            <p>Khusus pengguna HP Android yang menggunakan printer bluetooth portable mini.</p>
             <ol>
-              <li>Install aplikasi <strong>RawBT</strong> dari Google Play Store.</li>
-              <li>Hubungkan HP Anda dengan Printer Bluetooth di pengaturan Bluetooth HP.</li>
-              <li>Buka aplikasi RawBT, pilih printer Anda, dan pastikan statusnya "Ready".</li>
-              <li>Di NessaPOS (Mobile), saat Anda menekan Print, pilih opsi "Send to RawBT".</li>
-              <li>Struk akan otomatis terkirim dari NessaPOS ke aplikasi RawBT untuk dicetak.</li>
+              <li>Install <strong>RawBT</strong> dari Play Store dan sambungkan bluetooth printer ke HP.</li>
+              <li>Pilih printer di aplikasi RawBT sampai statusnya "Ready".</li>
+              <li>Di aplikasi NessaPOS, buka <strong>Pengaturan {'>'} Printer</strong> dan pilih metode <strong>RawBT</strong>.</li>
+              <li>Saat transaksi selesai, tekan Cetak Struk maka data akan otomatis terkirim ke printer.</li>
             </ol>
           </div>
         </section>

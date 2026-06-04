@@ -125,7 +125,7 @@ onMounted(async () => {
 }
 .logo h2 {
   margin: 0;
-  color: #38bdf8;
+  color: #22c55e;
   font-weight: 700;
   letter-spacing: 1px;
 }
@@ -146,7 +146,7 @@ onMounted(async () => {
 .menu-item:hover, .router-link-active {
   background: #334155;
   color: white;
-  border-left: 4px solid #38bdf8;
+  border-left: 4px solid #22c55e;
 }
 .superadmin-link {
   background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1));
@@ -165,7 +165,7 @@ onMounted(async () => {
 .btn-session {
   width: 100%;
   padding: 12px;
-  background: #0ea5e9;
+  background: #10b981;
   border: none;
   color: white;
   border-radius: 6px;
@@ -175,7 +175,7 @@ onMounted(async () => {
   font-size: 14px;
 }
 .btn-session:hover {
-  background: #0284c7;
+  background: #059669;
 }
 .btn-session.btn-close {
   background: #f59e0b;
@@ -208,7 +208,7 @@ onMounted(async () => {
   background-color: white;
 }
 @media print {
-  .sidebar {
+  .sidebar, .mobile-toggle, .sidebar-overlay {
     display: none !important;
   }
   .main-content {
@@ -216,10 +216,12 @@ onMounted(async () => {
     overflow: visible !important;
     height: auto !important;
     width: 100% !important;
+    display: block !important;
   }
   .app-layout {
     display: block !important;
     height: auto !important;
+    min-height: auto !important;
     width: 100% !important;
     overflow: visible !important;
     background: white !important;

@@ -32,54 +32,12 @@ body {
 
 /* Global Print Styles */
 @media print {
-    /* 1. HIDE ABSOLUTELY EVERYTHING BY DEFAULT */
+    /* 1. Set global printing basics */
     * {
-        visibility: hidden !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     
-    /* 2. SHOW ONLY THE RECEIPT AND ITS HIERARCHY */
-    html, body, #app, .page-container, .receipt-modal, #receipt-printarea, #receipt-printarea * {
-        visibility: visible !important;
-    }
-
-    /* Force hide buttons even if they are children of receipt-printarea */
-    .hide-print, .hide-print *, .actions, .actions *, .btn-print, .btn-close {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    @page {
-        size: auto;
-        margin: 0mm;
-    }
-
-    /* Reset positioning for the printed elements */
-    .receipt-modal {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        background: white !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        display: block !important;
-    }
-
-    #receipt-printarea {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        max-width: 80mm !important; /* Force thermal width */
-        margin: 0 !important;
-        padding: 0 !important;
-        display: block !important;
-    }
-
-    /* 3. PAGE SETUP */
     body, html {
         background: white !important;
         margin: 0 !important;
@@ -88,15 +46,38 @@ body {
         overflow: visible !important;
     }
 
-    .app-layout, .main-content, .pos-screen, .report-main, .content-area, .page-container {
+    #app, .app-layout, .main-content {
         display: block !important;
-        position: static !important;
         height: auto !important;
         overflow: visible !important;
         width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
         background: white !important;
+    }
+
+    /* 2. Hide common UI elements */
+    .sidebar, .mobile-toggle, .sidebar-overlay, .filters-bar, .btn-print, .btn-excel, .btn-reset, .actions, .hide-print {
+        display: none !important;
+    }
+
+    /* 3. Handle Receipt Print specifically (if on POS modal) */
+    .receipt-modal {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    #receipt-printarea {
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+    }
+
+    /* 4. Ensure report content is visible */
+    .page-container, .report-main, .content-area, .tab-content {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        overflow: visible !important;
     }
 }
 

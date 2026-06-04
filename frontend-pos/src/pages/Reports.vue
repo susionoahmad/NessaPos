@@ -996,46 +996,55 @@ const handleExportExcel = () => {
 .btn-primary { background: #1e293b; color: white; }
 
 @media print {
-    @page { margin: 8mm; }
-    .report-sidebar, .filters-bar, .btn-capital, .header, .header p, .tc-header .badge, .alert {
+    @page { margin: 10mm; size: auto; }
+    .report-sidebar, .filters-bar, .btn-capital, .header, .header p, .tc-header .badge, .alert, .btn-print, .btn-excel, .btn-reset, .btn-reprint {
         display: none !important;
     }
-    .page-container {
+    .page-container, .report-layout, .report-main, .content-area {
         padding: 0 !important;
         margin: 0 !important;
-        height: auto;
-        overflow: visible;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        width: 100% !important;
     }
-    .report-layout {
-        display: block;
-    }
-    .report-main {
-        padding: 0;
-    }
-    .content-area {
-        overflow: visible;
-        height: auto;
+    .tab-content {
+        display: block !important;
+        visibility: visible !important;
     }
     .table-card, .card {
-        box-shadow: none;
-        border: none;
-        padding: 0;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        background: white !important;
     }
-    .report-table th {
-        background: #f1f5f9 !important;
+    .report-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    .report-table th, .report-table td {
         color: black !important;
-        border-bottom: 1px solid #000 !important;
+        border: 1px solid #eee !important;
+    }
+    .text-dim, .user-info, .text-small {
+        color: #000 !important;
+    }
+    .text-success, .text-danger, .text-profit {
+        color: #000 !important;
+        font-weight: bold !important;
     }
     .tc-header h3 {
         display: block !important;
-        font-size: 20px !important;
+        font-size: 22px !important;
         margin-bottom: 10px !important;
-        border-bottom: 2px solid #1e293b;
+        border-bottom: 2px solid #000;
         padding-bottom: 5px;
+        color: black !important;
     }
     .tc-header .count {
-        display: inline-block !important;
-        margin-bottom: 10px;
+        display: block !important;
+        font-weight: bold;
+        margin-bottom: 15px;
     }
     .order-details.print-visible {
         display: block !important;
@@ -1052,18 +1061,8 @@ const handleExportExcel = () => {
         border: 1px solid #ddd !important;
         display: block;
         width: 100%;
-        overflow: visible !important; /* Fix cutoff */
-        height: auto !important;
-    }
-    .sales-list {
-        display: block;
-        height: auto !important;
         overflow: visible !important;
-    }
-    .report-main, .content-area {
         height: auto !important;
-        overflow: visible !important;
-        display: block !important;
     }
 }
 /* Mobile Responsive for Reports */

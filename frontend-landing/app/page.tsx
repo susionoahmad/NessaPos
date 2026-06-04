@@ -128,11 +128,11 @@ export default async function Home() {
           <span>NessaPOS</span>
         </Link>
         <nav aria-label="Navigasi utama">
-          <a href="#fitur">Fitur</a>
-          <a href="#alur">Alur</a>
-          <a href="#harga">Paket</a>
+          <Link href="#fitur">Fitur</Link>
+          <Link href="#harga">Paket</Link>
           <Link href="/panduan">Panduan</Link>
-          <Link href="/coba-gratis">Coba Gratis</Link>
+          <Link href="/kontak">Kontak</Link>
+          <Link href="/coba-gratis" className="nav-cta">Coba Gratis</Link>
           <Link href="/blog">Blog</Link>
         </nav>
       </header>

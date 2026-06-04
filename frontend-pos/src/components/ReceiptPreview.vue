@@ -82,7 +82,8 @@ import { formatCurrency } from '../utils/format'
 const formatImageUrl = (path: string) => {
   if (!path) return ''
   if (path.startsWith('http')) return path
-  return `${import.meta.env.VITE_API_BASE_URL || ''}/storage/${path}`
+  const baseUrl = 'https://nessapos.kalkulatorin.com'
+  return `${baseUrl}/storage/${path}`
 }
 
 const props = defineProps<{
