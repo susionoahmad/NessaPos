@@ -38,7 +38,9 @@ class DownloadController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('downloads', 'public');
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            $path = $file->storeAs('downloads', $originalName, 'public');
             $data['file_path'] = $path;
         }
 
@@ -66,7 +68,9 @@ class DownloadController extends Controller
             if ($download->file_path) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($download->file_path);
             }
-            $path = $request->file('file')->store('downloads', 'public');
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            $path = $file->storeAs('downloads', $originalName, 'public');
             $data['file_path'] = $path;
         }
 
