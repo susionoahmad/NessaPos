@@ -61,7 +61,7 @@
               </select>
               <input v-model="content.key" placeholder="title" />
               <template v-if="content.type === 'json'">
-                <textarea v-model="content.value" placeholder="Isi konten JSON" rows="3"></textarea>
+                <textarea v-model="content.value" placeholder="Isi konten JSON" rows="8" class="json-editor"></textarea>
               </template>
               <template v-else>
                 <input v-model="content.value" placeholder="Isi konten" />
@@ -308,9 +308,15 @@
           <label class="wide">Description<textarea v-model="downloadForm.description" rows="2"></textarea></label>
         </div>
         <div class="cms-switch"><input v-model="downloadForm.is_active" type="checkbox" /> Aktif</div>
+        <div v-if="isUploading" class="upload-progress-container">
+          <div class="upload-progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+          <span class="upload-progress-text">Mengunggah... {{ uploadProgress }}%</span>
+        </div>
         <div class="form-actions">
-          <button class="ghost" @click="showDownloadForm = false">Batal</button>
-          <button class="cms-primary" @click="saveDownload">{{ downloadForm.id ? 'Simpan' : 'Upload & Simpan' }}</button>
+          <button class="ghost" @click="showDownloadForm = false" :disabled="isUploading">Batal</button>
+          <button class="cms-primary" @click="saveDownload" :disabled="isUploading">
+               {{ isUploading ? 'Mohon Tunggu...' : (downloadForm.id ? 'Simpan' : 'Upload & Simpan') }}
+          </button>
         </div>
       </div>
     </section>
@@ -348,6 +354,8 @@ const planForm = ref<any>({})
 const promotionForm = ref<any>({})
 const downloadForm = ref<any>({})
 const downloadFile = ref<File | null>(null)
+const uploadProgress = ref(0)
+const isUploading = ref(false)
 
 const notify = (msg: string, type = 'success') => {
   alert.value = { msg, type }
@@ -660,17 +668,46 @@ const handleDownloadFile = (e: any) => {
 }
 
 const saveDownload = async () => {
+  if (!downloadForm.value.name || !downloadForm.value.slug) {
+    notify('Nama dan Slug wajib diisi', 'error')
+    return
+  }
+  
+  if (!downloadForm.value.id && !downloadFile.value) {
+    notify('Anda harus memilih file untuk diunggah', 'error')
+    return
+  }
+
   try {
+    isUploading.value = true
+    uploadProgress.value = 0
     const fd = new FormData()
-    Object.keys(downloadForm.value).forEach(k => {
-      if (downloadForm.value[k] !== null) fd.append(k, downloadForm.value[k])
-    })
-    if (downloadFile.value) fd.append('file', downloadFile.value)
+    
+    // Append form data normally
+    fd.append('name', downloadForm.value.name)
+    fd.append('slug', downloadForm.value.slug)
+    fd.append('platform', downloadForm.value.platform || '')
+    fd.append('version', downloadForm.value.version || '')
+    fd.append('description', downloadForm.value.description || '')
+    fd.append('is_active', downloadForm.value.is_active ? '1' : '0')
+
+    if (downloadFile.value) {
+      fd.append('file', downloadFile.value)
+    }
+
+    const config = {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent: any) => {
+        if (progressEvent.total) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        }
+      }
+    }
 
     if (downloadForm.value.id) {
-       await api.post(`/superadmin/cms/downloads/${downloadForm.value.id}`, fd)
+       await api.post(`/superadmin/cms/downloads/${downloadForm.value.id}`, fd, config)
     } else {
-       await api.post('/superadmin/cms/downloads', fd)
+       await api.post('/superadmin/cms/downloads', fd, config)
     }
 
     showDownloadForm.value = false
@@ -678,6 +715,9 @@ const saveDownload = async () => {
     notify('Download berhasil disimpan.')
   } catch (e: any) {
     notify(apiError(e), 'error')
+  } finally {
+    isUploading.value = false
+    uploadProgress.value = 0
   }
 }
 
@@ -772,7 +812,34 @@ select option { background: #1e293b; }
 .section-editor-head { display: flex; justify-content: space-between; align-items: center; }
 .section-editor-head h4 { margin: 0; color: white; }
 .section-box { border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.content-row { display: grid; grid-template-columns: 110px 1fr 2fr 90px; gap: 8px; align-items: center; }
+.content-row { display: grid; grid-template-columns: 110px 1fr 2fr 90px; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.json-editor { font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #000 !important; border-color: #334155 !important; }
+
+.upload-progress-container {
+  margin-top: 16px;
+  background: rgba(255,255,255,0.05);
+  height: 24px;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.upload-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #6366f1);
+  transition: width 0.3s ease;
+}
+.upload-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
 .check-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 12px; }
 .check-list label { flex-direction: row; align-items: center; color: #cbd5e1; font-weight: 600; }
 .check-list input { width: auto; }
