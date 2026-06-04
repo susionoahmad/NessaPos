@@ -274,6 +274,8 @@
           <button class="cms-primary" @click="savePromotion">Simpan Promo</button>
         </div>
       </div>
+    </section>
+
     <section v-else class="cms-section">
       <div class="cms-header">
         <div>
