@@ -115,6 +115,27 @@
                 </select>
               </div>
 
+              <div class="form-group">
+                <label>Digit Harga (Desimal)</label>
+                <select v-model.number="form.decimal_digits">
+                  <option :value="0">0 Digit (Tanpa Desimal, e.g. Rp 50.000)</option>
+                  <option :value="1">1 Digit (e.g. 50.000,5)</option>
+                  <option :value="2">2 Digit (e.g. 50.000,50)</option>
+                </select>
+              </div>
+
+              <div class="form-group full">
+                <label>Logo Struk (Hitam Putih Disarankan)</label>
+                <div class="logo-upload-wrapper">
+                  <div class="logo-preview" v-if="logoPreview || form.receipt_logo">
+                    <img :src="logoPreview || formatImageUrl(form.receipt_logo)" alt="Logo Struk" />
+                    <button class="btn-remove-logo" @click="removeLogo">×</button>
+                  </div>
+                  <input type="file" @change="handleLogoChange" accept="image/*" />
+                </div>
+                <p class="field-hint">Logo akan muncul di bagian paling atas struk thermal Anda.</p>
+              </div>
+
               <div class="form-group full border-top">
                 <label>Teks Kaki Struk (Footer)</label>
                 <textarea v-model="form.receipt_text" rows="2" placeholder="Pesan di bawah struk (e.g. Terima Kasih)"></textarea>
@@ -447,8 +468,33 @@ const form = ref({
   cash_drawer_enabled: true,
   bridge_token: '',
   bridge_port: 12348,
-  allowed_origins: '*'
+  allowed_origins: '*',
+  receipt_logo: '',
+  decimal_digits: 0
 })
+
+const logoFile = ref<File | null>(null)
+const logoPreview = ref('')
+
+const handleLogoChange = (e: any) => {
+  const file = e.target.files[0]
+  if (file) {
+    logoFile.value = file
+    logoPreview.value = URL.createObjectURL(file)
+  }
+}
+
+const removeLogo = () => {
+  logoFile.value = null
+  logoPreview.value = ''
+  form.value.receipt_logo = ''
+}
+
+const formatImageUrl = (path: string) => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `${import.meta.env.VITE_API_BASE_URL || ''}/storage/${path}`
+}
 
 // User Management
 const users = ref<any[]>([])
@@ -681,47 +727,61 @@ const saveSettings = async () => {
   successMsg.value = ''
   loading.value = true
   try {
-    // 1. Save to Cloud (Laravel)
-    await api.put('/settings', form.value)
+    // Construct FormData for file upload support
+    const fd = new FormData()
+    Object.keys(form.value).forEach(key => {
+      if (key === 'receipt_logo') return
+      
+      const val = (form.value as any)[key]
+      if (val !== null && val !== undefined) {
+        fd.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : val)
+      }
+    })
+
+    if (logoFile.value) {
+      fd.append('receipt_logo', logoFile.value)
+    } else if (form.value.receipt_logo === '') {
+      // If logo was removed
+      fd.append('receipt_logo', '')
+    }
+
+    await api.post('/settings', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    
     authStore.cashDrawerEnabled = form.value.cash_drawer_enabled !== false
     
-    // 2. Immediately sync bridge token, port, and API URL to localStorage
     if (form.value.bridge_token) {
       localStorage.setItem('bridge_token', form.value.bridge_token)
-      console.log("[Settings] Bridge token updated in localStorage:", form.value.bridge_token.substring(0, 5) + "***")
     }
     if (form.value.bridge_port) {
       localStorage.setItem('bridge_port', form.value.bridge_port.toString())
-      console.log("[Settings] Bridge port updated in localStorage:", form.value.bridge_port)
     }
     if (desktopApiUrl.value) {
       localStorage.setItem('api_url', desktopApiUrl.value)
-      console.log("[Settings] Desktop API URL updated in localStorage:", desktopApiUrl.value)
     } else {
       localStorage.removeItem('api_url')
-      console.log("[Settings] Desktop API URL removed from localStorage")
     }
     
-    // 3. If in Desktop App, also save to Local SQLite
     if (isWailsApp.value) {
       try {
         const { UpdateSettings } = await import('../../wailsjs/go/api/API')
         if (UpdateSettings) {
           await UpdateSettings(form.value as any)
-          console.log("[Settings] Local SQLite updated via Wails")
         }
       } catch (localErr) {
-        console.warn("[Settings] Gagal update database lokal (bukan di app desktop):", localErr)
+        console.warn("[Settings] Gagal update database lokal:", localErr)
       }
     }
 
     successMsg.value = 'Pengaturan berhasil disimpan!'
     await loadSettings()
+    logoFile.value = null
+    logoPreview.value = ''
     setTimeout(() => { successMsg.value = '' }, 3000)
   } catch(e: any) {
     const errorMsg = e.response?.data?.message || e.message
     alert("Gagal menyimpan: " + errorMsg)
-    console.error("[Settings] Save error:", e.response?.data)
   } finally {
     loading.value = false
   }
@@ -963,8 +1023,61 @@ const closeModal = () => {
 
 .input-with-button {
   display: flex;
-  gap: 10px;
-  width: 100%;
+  gap: 8px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.logo-upload-wrapper {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.logo-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.logo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.btn-remove-logo {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #white;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btn-remove-logo:hover {
+  background: #dc2626;
 }
 
 .btn-inline {

@@ -74,7 +74,7 @@ Route::middleware(['auth:sanctum', 'subscription'])->group(function () {
 
     // Settings
     Route::get('/settings', [SettingController::class, 'index']);
-    Route::put('/settings', [SettingController::class, 'update']);
+    Route::post('/settings', [SettingController::class, 'update']);
 
     // User management (admin only — enforced in controller)
     Route::get('/users', [UserController::class, 'index']);

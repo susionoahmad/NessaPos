@@ -70,13 +70,22 @@ class SettingController extends Controller
             'cash_drawer_enabled' => 'nullable|boolean',
             'bridge_token' => 'nullable|string',
             'bridge_port' => 'nullable|integer',
-            'allowed_origins' => 'nullable|string'
+            'allowed_origins' => 'nullable|string',
+            'decimal_digits' => 'nullable|integer|min:0|max:2',
+            'receipt_logo' => 'nullable|image|max:1024'
         ];
 
-        // Filter out empty strings from the request before validation so they don't overwrite with ""
-        $data = array_filter($request->all(), function($value) {
-            return $value !== null && $value !== '';
-        });
+        $data = $request->all();
+
+        // Handle File Upload for receipt_logo
+        if ($request->hasFile('receipt_logo')) {
+            // Delete old logo if exists
+            if ($setting->receipt_logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($setting->receipt_logo);
+            }
+            $path = $request->file('receipt_logo')->store('logos', 'public');
+            $data['receipt_logo'] = $path;
+        }
 
         $validated = validator($data, $rules)->validate();
 

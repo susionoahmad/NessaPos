@@ -131,6 +131,7 @@ export default async function Home() {
           <a href="#fitur">Fitur</a>
           <a href="#alur">Alur</a>
           <a href="#harga">Paket</a>
+          <Link href="/panduan">Panduan</Link>
           <Link href="/coba-gratis">Coba Gratis</Link>
           <Link href="/blog">Blog</Link>
         </nav>

@@ -2,6 +2,9 @@
   <div class="modal-overlay receipt-modal">
     <div class="receipt-content" id="receipt-printarea">
       <div class="text-center header">
+        <div v-if="settings?.receipt_logo" class="receipt-logo-container">
+          <img :src="formatImageUrl(settings.receipt_logo)" class="receipt-logo" />
+        </div>
         <h3>{{ settings?.store_name || 'SmartPOS Store' }}</h3>
         <p>{{ settings?.store_address || 'Address not set' }}</p>
         <p>Tel: {{ settings?.store_phone || '-' }}</p>
@@ -76,6 +79,12 @@ import { isWails, bridgePrintReceipt } from '../utils/bridge'
 import { onMounted, onUnmounted } from 'vue'
 import { formatCurrency } from '../utils/format'
 
+const formatImageUrl = (path: string) => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `${import.meta.env.VITE_API_BASE_URL || ''}/storage/${path}`
+}
+
 const props = defineProps<{
   order: any,
   settings: any
@@ -146,6 +155,19 @@ onUnmounted(() => {
 .header p {
   margin: 4px 0;
   font-size: 14px;
+}
+
+.receipt-logo-container {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+}
+
+.receipt-logo {
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: contain;
+  filter: grayscale(100%) contrast(150%);
 }
 
 .divider {

@@ -13,7 +13,8 @@ class Setting extends Model
         'tenant_id', 'store_name', 'store_address', 'store_phone', 
         'tax_rate', 'tax_type', 'receipt_text', 'printer_name', 
         'refresh_interval_sec', 'print_session_slip', 'cash_drawer_enabled',
-        'bridge_token', 'bridge_port', 'allowed_origins'
+        'bridge_token', 'bridge_port', 'allowed_origins',
+        'receipt_logo', 'decimal_digits'
     ];
 
     protected $casts = [
