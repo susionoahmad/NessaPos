@@ -6,6 +6,7 @@
       <button :class="{ active: cmsTab === 'affiliate' }" @click="cmsTab = 'affiliate'">Affiliate Manager</button>
       <button :class="{ active: cmsTab === 'device' }" @click="cmsTab = 'device'">Device Manager</button>
       <button :class="{ active: cmsTab === 'promotion' }" @click="cmsTab = 'promotion'">Promotion Manager</button>
+      <button :class="{ active: cmsTab === 'download' }" @click="cmsTab = 'download'">Download Manager</button>
     </div>
 
     <div v-if="alert.msg" :class="['cms-alert', alert.type]">{{ alert.msg }}</div>
@@ -273,6 +274,43 @@
           <button class="cms-primary" @click="savePromotion">Simpan Promo</button>
         </div>
       </div>
+    <section v-else-if="cmsTab === 'download'" class="cms-section">
+      <div class="cms-header">
+        <div>
+          <h2>Application Downloads</h2>
+          <p>Upload file .exe (Wails, Desktop) dan kelola link download untuk landing page.</p>
+        </div>
+        <button class="cms-primary" @click="openDownloadForm()">+ File</button>
+      </div>
+
+      <div class="cms-grid">
+        <article v-for="dl in downloads" :key="dl.id" class="cms-card">
+          <div class="cms-card-title">{{ dl.name }}</div>
+          <div class="cms-muted">{{ dl.platform }} - v{{ dl.version || '1.0.0' }}</div>
+          <div class="cms-meta" style="word-break: break-all; font-size: 11px;">{{ dl.download_url }}</div>
+          <div class="cms-actions">
+            <button @click="openDownloadForm(dl)">Edit</button>
+            <button class="danger" @click="deleteDownload(dl)">Hapus</button>
+          </div>
+        </article>
+      </div>
+
+      <div v-if="showDownloadForm" class="cms-form">
+        <h3>{{ downloadForm.id ? 'Edit Download' : 'Upload Download Baru' }}</h3>
+        <div class="form-grid">
+          <label>Name<input v-model="downloadForm.name" placeholder="NessaPOS Desktop" /></label>
+          <label>Slug<input v-model="downloadForm.slug" placeholder="nessapos-win-x64" /></label>
+          <label>Platform<input v-model="downloadForm.platform" placeholder="Windows" /></label>
+          <label>Version<input v-model="downloadForm.version" placeholder="1.0.1" /></label>
+          <label class="wide">File {{ downloadForm.id ? '(Kosongkan jika tidak ganti)' : '' }} <input type="file" @change="handleDownloadFile" /></label>
+          <label class="wide">Description<textarea v-model="downloadForm.description" rows="2"></textarea></label>
+        </div>
+        <div class="cms-switch"><input v-model="downloadForm.is_active" type="checkbox" /> Aktif</div>
+        <div class="form-actions">
+          <button class="ghost" @click="showDownloadForm = false">Batal</button>
+          <button class="cms-primary" @click="saveDownload">{{ downloadForm.id ? 'Simpan' : 'Upload & Simpan' }}</button>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -290,6 +328,7 @@ const affiliateLinks = ref<any[]>([])
 const devices = ref<any[]>([])
 const plans = ref<any[]>([])
 const promotions = ref<any[]>([])
+const downloads = ref<any[]>([])
 
 const showPageForm = ref(false)
 const showPostForm = ref(false)
@@ -297,6 +336,7 @@ const showAffiliateForm = ref(false)
 const showDeviceForm = ref(false)
 const showPlanForm = ref(false)
 const showPromotionForm = ref(false)
+const showDownloadForm = ref(false)
 
 const pageForm = ref<any>({})
 const postForm = ref<any>({})
@@ -304,6 +344,8 @@ const affiliateForm = ref<any>({})
 const deviceForm = ref<any>({})
 const planForm = ref<any>({})
 const promotionForm = ref<any>({})
+const downloadForm = ref<any>({})
+const downloadFile = ref<File | null>(null)
 
 const notify = (msg: string, type = 'success') => {
   alert.value = { msg, type }
@@ -319,7 +361,8 @@ const fetchAll = async () => {
     fetchAffiliates(),
     fetchDevices(),
     fetchPlans(),
-    fetchPromotions()
+    fetchPromotions(),
+    fetchDownloads()
   ])
 }
 
@@ -329,6 +372,7 @@ const fetchAffiliates = async () => { affiliateLinks.value = (await api.get('/su
 const fetchDevices = async () => { devices.value = (await api.get('/superadmin/cms/devices')).data }
 const fetchPlans = async () => { plans.value = (await api.get('/superadmin/cms/plans')).data }
 const fetchPromotions = async () => { promotions.value = (await api.get('/superadmin/cms/promotions')).data }
+const fetchDownloads = async () => { downloads.value = (await api.get('/superadmin/cms/downloads')).data }
 
 onMounted(() => {
   fetchAll().catch(e => notify(apiError(e), 'error'))
@@ -601,6 +645,45 @@ const deletePromotion = async (promotion: any) => {
   await api.delete(`/superadmin/cms/promotions/${promotion.id}`)
   await fetchPromotions()
   notify('Promo dihapus.')
+}
+
+const openDownloadForm = (dl?: any) => {
+  downloadForm.value = dl ? { ...dl } : { name: '', slug: '', platform: 'Windows', version: '', description: '', is_active: true }
+  downloadFile.value = null
+  showDownloadForm.value = true
+}
+
+const handleDownloadFile = (e: any) => {
+  downloadFile.value = e.target.files[0]
+}
+
+const saveDownload = async () => {
+  try {
+    const fd = new FormData()
+    Object.keys(downloadForm.value).forEach(k => {
+      if (downloadForm.value[k] !== null) fd.append(k, downloadForm.value[k])
+    })
+    if (downloadFile.value) fd.append('file', downloadFile.value)
+
+    if (downloadForm.value.id) {
+       await api.post(`/superadmin/cms/downloads/${downloadForm.value.id}`, fd)
+    } else {
+       await api.post('/superadmin/cms/downloads', fd)
+    }
+
+    showDownloadForm.value = false
+    await fetchDownloads()
+    notify('Download berhasil disimpan.')
+  } catch (e: any) {
+    notify(apiError(e), 'error')
+  }
+}
+
+const deleteDownload = async (dl: any) => {
+  if (!confirm(`Hapus download "${dl.name}"?`)) return
+  await api.delete(`/superadmin/cms/downloads/${dl.id}`)
+  await fetchDownloads()
+  notify('Download dihapus.')
 }
 </script>
 

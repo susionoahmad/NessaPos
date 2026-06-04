@@ -142,5 +142,11 @@ Route::middleware(['auth:sanctum', 'subscription'])->group(function () {
         Route::post('/desktop-licenses', [DesktopLicenseController::class, 'store']);
         Route::put('/desktop-licenses/{id}', [DesktopLicenseController::class, 'update']);
         Route::delete('/desktop-licenses/{id}', [DesktopLicenseController::class, 'destroy']);
+
+        // CMS Downloads
+        Route::get('/cms/downloads', [\App\Http\Controllers\DownloadController::class, 'index']);
+        Route::post('/cms/downloads', [\App\Http\Controllers\DownloadController::class, 'store']);
+        Route::post('/cms/downloads/{id}', [\App\Http\Controllers\DownloadController::class, 'update']); // Use POST for multipart update with file
+        Route::delete('/cms/downloads/{id}', [\App\Http\Controllers\DownloadController::class, 'destroy']);
     });
 });
