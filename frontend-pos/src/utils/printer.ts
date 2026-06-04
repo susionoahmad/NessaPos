@@ -30,10 +30,142 @@ export const printReceipt = async (order: any, options: PrintOptions = {}) => {
   } else if (method === 'rawbt') {
     return handleRawBTPrint(order, options)
   } else {
-    // Default to browser print
-    window.print()
-    return true
+    return handleBrowserPrint(order)
   }
+}
+
+const escapeHtml = (value: unknown) => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+const buildReceiptHtml = (order: any) => {
+  const tenant = JSON.parse(localStorage.getItem('tenant') || '{}')
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const settings = JSON.parse(localStorage.getItem('settings') || '{}')
+  const items = Array.isArray(order.items) ? order.items : []
+  const receiptText = settings.receipt_text || tenant.receipt_text || 'Terima kasih atas kunjungan Anda'
+
+  const itemRows = items.map((it: any) => {
+    const lineTotal = Number(it.total ?? Number(it.price || 0) * Number(it.quantity || 0))
+    return `
+      <div class="item">
+        <div class="item-name">${escapeHtml(it.product_name)}</div>
+        <div class="row">
+          <span>${escapeHtml(it.quantity)} x ${escapeHtml(formatCurrency(Number(it.price || 0)))}</span>
+          <span>${escapeHtml(formatCurrency(lineTotal))}</span>
+        </div>
+        ${Number(it.discount || 0) > 0 ? `<div class="discount">Diskon: -${escapeHtml(formatCurrency(Number(it.discount)))}</div>` : ''}
+      </div>
+    `
+  }).join('')
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Struk #${escapeHtml(order.id || '')}</title>
+        <style>
+          @page { size: 58mm auto; margin: 0; }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 4mm;
+            width: 58mm;
+            color: #000;
+            background: #fff;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 11px;
+            line-height: 1.3;
+          }
+          .center { text-align: center; }
+          .store { font-size: 14px; font-weight: 700; }
+          .divider { border-top: 1px dashed #000; margin: 6px 0; }
+          .row { display: flex; justify-content: space-between; gap: 8px; }
+          .item { margin-bottom: 5px; }
+          .item-name { overflow-wrap: anywhere; }
+          .discount { font-size: 10px; }
+          .total { font-weight: 700; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <div class="store">${escapeHtml(tenant.name || settings.store_name || 'NessaPOS')}</div>
+          <div>${escapeHtml(tenant.address || settings.store_address || '')}</div>
+          <div>${escapeHtml(tenant.phone || settings.store_phone || '')}</div>
+        </div>
+        <div class="divider"></div>
+        <div>No: #${escapeHtml(order.id || '-')}</div>
+        <div>Kasir: ${escapeHtml(user.username || order.user_name || '')}</div>
+        <div>Waktu: ${escapeHtml(order.date || new Date().toLocaleString('id-ID'))}</div>
+        <div class="divider"></div>
+        ${itemRows}
+        <div class="divider"></div>
+        <div class="row"><span>Subtotal</span><span>${escapeHtml(formatCurrency(Number(order.total_amount || 0)))}</span></div>
+        ${Number(order.discount || 0) > 0 ? `<div class="row"><span>Diskon</span><span>-${escapeHtml(formatCurrency(Number(order.discount)))}</span></div>` : ''}
+        ${Number(order.tax_amount || 0) > 0 ? `<div class="row"><span>Pajak</span><span>${escapeHtml(formatCurrency(Number(order.tax_amount)))}</span></div>` : ''}
+        <div class="row total"><span>TOTAL</span><span>${escapeHtml(formatCurrency(Number(order.final_amount || 0)))}</span></div>
+        <div class="row"><span>Bayar</span><span>${escapeHtml(formatCurrency(Number(order.amount_paid || 0)))}</span></div>
+        <div class="row"><span>Kembali</span><span>${escapeHtml(formatCurrency(Number(order.change_amount || 0)))}</span></div>
+        <div class="divider"></div>
+        <div class="center">${escapeHtml(receiptText)}</div>
+      </body>
+    </html>
+  `
+}
+
+const handleBrowserPrint = (order: any) => {
+  return new Promise<boolean>((resolve) => {
+    const iframe = document.createElement('iframe')
+    let resolved = false
+    let cleanupTimer: number | undefined
+
+    const finish = () => {
+      if (resolved) return
+      resolved = true
+      window.clearTimeout(cleanupTimer)
+      window.setTimeout(() => {
+        iframe.remove()
+      }, 250)
+      resolve(true)
+    }
+
+    iframe.title = 'NessaPOS Receipt Print'
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    iframe.style.pointerEvents = 'none'
+
+    document.body.appendChild(iframe)
+
+    const printWindow = iframe.contentWindow
+    const doc = printWindow?.document
+    if (!printWindow || !doc) {
+      iframe.remove()
+      resolve(false)
+      return
+    }
+
+    printWindow.onafterprint = finish
+    doc.open()
+    doc.write(buildReceiptHtml(order))
+    doc.close()
+
+    window.setTimeout(() => {
+      printWindow.focus()
+      printWindow.print()
+      cleanupTimer = window.setTimeout(finish, 3000)
+    }, 150)
+  })
 }
 
 const handleWailsPrint = async (order: any, options: PrintOptions) => {

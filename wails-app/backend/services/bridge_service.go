@@ -43,35 +43,48 @@ func (s *BridgeService) Start() {
 	// Middleware: Auth + CORS + Localhost only
 	handler := s.corsMiddleware(mux)
 
-	addr := fmt.Sprintf(":%d", port) // Listen on all interfaces for better compatibility
-	log.Printf("Local Bridge server started on http://localhost:%d", port)
-
 	go func() {
+		addr := fmt.Sprintf(":%d", port)
+		log.Printf("[Bridge] Attempting to start server on %s", addr)
 		if err := http.ListenAndServe(addr, handler); err != nil {
-			log.Printf("Bridge server error: %v", err)
+			log.Printf("[Bridge] Critical Error: %v (Check if port %d is already in use)", err, port)
 		}
 	}()
 }
 
 func (s *BridgeService) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// Gunakan origin dari request agar browser lebih percaya (penting untuk PNA)
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "X-Bridge-Token, Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "X-Bridge-Token, Content-Type, Access-Control-Allow-Private-Network")
+
+		// Header krusial untuk Private Network Access
 		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+		// Beri tahu browser untuk mengingat izin ini selama 20 hari (cache preflight)
+		w.Header().Set("Access-Control-Max-Age", "1728000")
 
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		// Detect if request is from localhost (same machine)
-		isLocalhost := strings.HasPrefix(r.RemoteAddr, "127.0.0.1") ||
-			strings.HasPrefix(r.RemoteAddr, "[::1") ||
-			r.RemoteAddr == "localhost"
+		// Deteksi localhost yang lebih akurat (menghapus port dan bracket IPv6)
+		remoteAddr := r.RemoteAddr
+		if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
+			remoteAddr = remoteAddr[:idx]
+		}
+		remoteAddr = strings.Trim(remoteAddr, "[]")
+
+		isLocalhost := remoteAddr == "127.0.0.1" || remoteAddr == "::1" || remoteAddr == "localhost" || strings.HasPrefix(remoteAddr, "::ffff:127.0.0.1")
 
 		if isLocalhost {
-			log.Printf("[Bridge] Localhost request from %s - allowing without token check (same machine)", r.RemoteAddr)
 			next.ServeHTTP(w, r)
 			return
 		}

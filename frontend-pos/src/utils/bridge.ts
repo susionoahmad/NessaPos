@@ -40,7 +40,7 @@ const bridgeApi = (baseURL?: string) => {
 
     return axios.create({
         baseURL: baseURL || getBridgeBaseUrls()[0],
-        timeout: 5000,
+        timeout: 10000, // Tambahkan timeout jika koneksi lambat
         headers
     })
 }
@@ -172,11 +172,11 @@ export const bridgePrintSessionClose = async (req: any) => {
     }
 }
 
-export const checkBridgeConnection = async () => {
-    return findBridgeBaseUrl()
-}
-
 export const checkBridgeStatus = async () => {
     const bridge = await findBridgeBaseUrl()
     return bridge.ok
+}
+
+export const checkBridgeConnection = async () => {
+    return findBridgeBaseUrl()
 }
