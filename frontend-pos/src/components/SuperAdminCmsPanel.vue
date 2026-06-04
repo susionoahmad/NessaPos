@@ -205,7 +205,7 @@
       </div>
     </section>
 
-    <section v-else class="cms-section">
+    <section v-else-if="cmsTab === 'promotion'" class="cms-section">
       <div class="cms-header">
         <div>
           <h2>Promotion & Plan</h2>
@@ -274,7 +274,7 @@
           <button class="cms-primary" @click="savePromotion">Simpan Promo</button>
         </div>
       </div>
-    <section v-else-if="cmsTab === 'download'" class="cms-section">
+    <section v-else class="cms-section">
       <div class="cms-header">
         <div>
           <h2>Application Downloads</h2>
