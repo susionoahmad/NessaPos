@@ -58,7 +58,10 @@ const findBridgeBaseUrl = async () => {
 
     const { port } = getBridgeConfig()
     const httpsHint = window.location.protocol === 'https:'
-        ? ' Jika POS dibuka dari HTTPS/domain online, pastikan aplikasi Desktop/Bridge sudah versi terbaru agar header Private Network Access aktif.'
+        ? (
+            ' Jika POS dibuka dari domain HTTPS, browser hanya bisa mencetak via aplikasi desktop jika akses ke localhost diizinkan. ' +
+            'Pastikan NessaPOS Desktop/Bridge berjalan, firewall mengizinkan port ini, lalu coba buka URL status bridge dari browser yang sama.'
+        )
         : ''
 
     return {
@@ -68,7 +71,7 @@ const findBridgeBaseUrl = async () => {
             `Bridge tidak merespons di port ${port}. ` +
             'Pastikan aplikasi NessaPOS Desktop sedang berjalan di PC kasir, port bridge sama dengan Pengaturan, lalu restart aplikasi desktop.' +
             httpsHint +
-            ` Detail: ${errors.join('; ')}`
+            ` URL cek: http://127.0.0.1:${port}/status. Detail: ${errors.join('; ')}`
         )
     } as BridgeConnectionStatus
 }
@@ -90,7 +93,8 @@ const formatBridgeError = (error: any) => {
         return (
             `Bridge tidak merespons di http://127.0.0.1:${port}. ` +
             'Pastikan aplikasi NessaPOS Desktop (Wails) sedang berjalan di PC ini, ' +
-            'port bridge sama dengan Pengaturan, lalu restart aplikasi desktop.'
+            'port bridge sama dengan Pengaturan, lalu restart aplikasi desktop. ' +
+            `Jika web dibuka dari domain online, coba akses http://127.0.0.1:${port}/status dari browser yang sama untuk memastikan browser tidak memblokir localhost.`
         )
     }
     return error?.message || 'Unknown bridge error'

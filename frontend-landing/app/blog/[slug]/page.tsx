@@ -3,6 +3,8 @@ import Link from 'next/link'
 import AffiliateImage from './AffiliateImage'
 import { apiUrl } from '../../lib/api'
 
+export const dynamic = 'force-dynamic'
+
 async function getPost(slug: string) {
   try {
     const res = await fetch(apiUrl(`/posts/${slug}`), {

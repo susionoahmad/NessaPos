@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { apiUrl } from '../lib/api'
 
+export const dynamic = 'force-dynamic'
+
 async function getTryPage() {
   try {
     const res = await fetch(apiUrl('/pages/coba-gratis'), {

@@ -27,26 +27,26 @@
         </thead>
         <tbody>
           <tr v-for="lic in licenses" :key="lic.id" :class="{ inactive: !lic.is_active }">
-            <td>
+            <td data-label="Serial Key">
               <code class="serial-key">{{ lic.serial_key }}</code>
               <button class="btn-copy" @click="copyToClipboard(lic.serial_key)" title="Salin Serial Key">📋</button>
             </td>
-            <td>{{ lic.licensee_name }}</td>
-            <td>
+            <td data-label="Pemegang Lisensi">{{ lic.licensee_name }}</td>
+            <td data-label="Status">
               <span :class="['status-badge', getStatusClass(lic)]">
                 {{ getStatusLabel(lic) }}
               </span>
             </td>
-            <td>
+            <td data-label="Device ID">
               <span v-if="lic.device_id" class="device-id" :title="lic.device_id">
                 {{ lic.device_id.substring(0, 8) }}...
               </span>
               <span v-else class="not-activated">Belum Aktivasi</span>
             </td>
-            <td>
+            <td data-label="Masa Berlaku">
               {{ lic.expiry_date ? formatDate(lic.expiry_date) : 'Lifetime' }}
             </td>
-            <td>
+            <td data-label="Aksi">
               <div class="action-buttons">
                 <button class="btn-icon" @click="openModal(lic)" title="Edit">✏️</button>
                 <button class="btn-icon" @click="toggleActive(lic)" :title="lic.is_active ? 'Nonaktifkan' : 'Aktifkan'">
@@ -413,4 +413,100 @@ const getStatusLabel = (lic: any) => {
 .btn-save { background: #0ea5e9; border: none; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
 .mf-error { color: #fca5a5; font-size: 12px; margin-top: 8px; }
+
+@media (max-width: 760px) {
+  .section-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .license-table-wrapper {
+    background: transparent;
+    border: none;
+    overflow: visible;
+  }
+
+  .license-table,
+  .license-table tbody,
+  .license-table tr,
+  .license-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .license-table thead {
+    display: none;
+  }
+
+  .license-table tr {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  .license-table td {
+    align-items: flex-start;
+    border-bottom: none;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .license-table td::before {
+    color: #94a3b8;
+    content: attr(data-label);
+    flex: 0 0 108px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .serial-key {
+    display: inline-block;
+    margin: 0 4px 6px 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .modal {
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    padding: 18px;
+  }
+
+  .input-with-action,
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-secondary,
+  .btn-cancel,
+  .btn-save {
+    min-height: 40px;
+    width: 100%;
+  }
+}
 </style>

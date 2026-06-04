@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { apiUrl } from './lib/api'
 
+export const dynamic = 'force-dynamic'
+
 const features = [
   {
     title: 'Kasir Lebih Cepat',

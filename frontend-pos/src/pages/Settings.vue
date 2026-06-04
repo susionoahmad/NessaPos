@@ -307,6 +307,7 @@
                     </span>
                     <button class="btn-sm" style="margin-left: auto; font-size: 11px;" @click="checkPrinterStatus">Cek Ulang</button>
                   </div>
+                  <p v-if="printerStatusMessage" class="bridge-status-detail">{{ printerStatusMessage }}</p>
                   <button class="btn-secondary" style="margin-top: 15px; width: 100%;" @click="testPrint">Tes Cetak Struk</button>
               </div>
 
@@ -495,6 +496,7 @@ const printerConfig = ref({
 
 const desktopApiUrl = ref(localStorage.getItem('api_url') || '')
 const printerStatus = ref(false)
+const printerStatusMessage = ref('')
 
 const savePrinterConfig = () => {
   localStorage.setItem('print_method', printerConfig.value.method)
@@ -530,6 +532,8 @@ const regenerateToken = () => {
 }
 
 const checkPrinterStatus = async () => {
+  printerStatusMessage.value = ''
+
   if (printerConfig.value.method !== 'wails') {
     printerStatus.value = true // Browser/RawBT assume OK
     return
@@ -537,17 +541,19 @@ const checkPrinterStatus = async () => {
 
   if (isWailsApp.value) {
     printerStatus.value = true
+    printerStatusMessage.value = 'Aplikasi desktop mencetak langsung lewat backend Go lokal.'
     return
   }
 
   try {
     const bridge = await checkBridgeConnection()
     printerStatus.value = bridge.ok
-    if (!bridge.ok && bridge.message) {
-      console.warn('[Bridge] Status check failed:', bridge.message)
-    }
+    printerStatusMessage.value = bridge.ok
+      ? 'Bridge lokal terhubung. Browser web siap mengirim perintah cetak ke aplikasi desktop.'
+      : bridge.message || 'Bridge lokal belum merespons.'
   } catch {
     printerStatus.value = false
+    printerStatusMessage.value = 'Bridge lokal belum merespons. Pastikan NessaPOS Desktop berjalan di PC kasir.'
   }
 }
 
@@ -1297,6 +1303,12 @@ const closeModal = () => {
 .status-dot.online { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
 .status-dot.offline { background: #ef4444; }
 .status-text { font-size: 13px; font-weight: 600; color: #475569; }
+.bridge-status-detail {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
 /* Mobile Responsive for Settings */
 @media (max-width: 768px) {
   .page-container {

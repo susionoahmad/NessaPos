@@ -919,4 +919,223 @@ const rejectRenewal = async (id: number) => {
   color: white;
   border-color: #0ea5e9;
 }
+
+@media (max-width: 900px) {
+  .sa-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .sa-header-left {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .sa-logo {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .sa-title {
+    font-size: 22px;
+  }
+
+  .sa-header-right {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .btn-new-tenant {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .sa-tabs {
+    gap: 8px;
+    margin-top: 0;
+    overflow-x: auto;
+    padding: 0 20px;
+    scrollbar-width: thin;
+  }
+
+  .sa-tabs button {
+    flex: 0 0 auto;
+    padding: 12px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .sa-alert {
+    margin: 12px 20px 0;
+  }
+
+  .sa-content {
+    padding: 18px 20px 24px;
+  }
+
+  .tenant-grid,
+  .tenant-grid.packages-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .status-filters {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .status-filters button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 520px) {
+  .sa-layout {
+    min-height: calc(100vh - 60px);
+  }
+
+  .sa-header {
+    padding: 16px;
+  }
+
+  .sa-header-left {
+    gap: 10px;
+  }
+
+  .sa-title {
+    font-size: 19px;
+  }
+
+  .sa-subtitle {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .saas-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .sa-header-right {
+    gap: 8px;
+  }
+
+  .sa-stat {
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  .sa-stat b {
+    display: block;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .sa-tabs {
+    padding: 0 16px;
+  }
+
+  .sa-content {
+    padding: 16px;
+  }
+
+  .sa-loading {
+    padding: 42px 16px;
+  }
+
+  .tc-header {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 16px 10px;
+  }
+
+  .tc-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    font-size: 17px;
+  }
+
+  .tc-status {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .tc-body {
+    padding: 12px 16px;
+  }
+
+  .tc-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .tc-value {
+    max-width: 60%;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .tc-footer {
+    flex-direction: column;
+    padding: 12px 16px 16px;
+  }
+
+  .btn-edit,
+  .btn-toggle,
+  .btn-approve,
+  .btn-reject {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .empty-state {
+    padding: 52px 16px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .modal {
+    max-height: calc(100vh - 24px);
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    padding: 14px 16px 16px;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+    min-height: 42px;
+  }
+}
 </style>

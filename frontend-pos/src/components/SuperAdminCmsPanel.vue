@@ -646,6 +646,11 @@ const deletePromotion = async (promotion: any) => {
 }
 .cms-card.promo { border-top: 3px solid #f59e0b; }
 .cms-card-title { color: white; font-weight: 900; margin-bottom: 4px; }
+.cms-card-title,
+.cms-muted,
+.cms-meta {
+  overflow-wrap: anywhere;
+}
 .cms-muted { color: #94a3b8; font-size: 13px; }
 .cms-meta { color: #38bdf8; font-size: 13px; font-weight: 800; margin-top: 12px; }
 .cms-actions { display: flex; gap: 8px; margin-top: 14px; }
@@ -690,5 +695,71 @@ select option { background: #1e293b; }
 @media (max-width: 760px) {
   .cms-header, .header-actions { flex-direction: column; align-items: stretch; }
   .form-grid, .form-grid.compact, .content-row, .cms-table-row { grid-template-columns: 1fr; }
+
+  .cms-tabs {
+    flex-wrap: nowrap;
+    margin: 0 -4px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .cms-tabs button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .cms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cms-header h2 {
+    font-size: 18px;
+  }
+
+  .cms-primary {
+    width: 100%;
+  }
+
+  .cms-actions,
+  .row-actions,
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .cms-actions button,
+  .row-actions button,
+  .form-actions button,
+  .ghost {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .cms-table {
+    border-radius: 10px;
+  }
+
+  .cms-table-row {
+    gap: 6px;
+    padding: 14px;
+  }
+
+  .cms-table-row.head {
+    display: none;
+  }
+
+  .cms-form {
+    padding: 14px;
+  }
+
+  .section-editor-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .check-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
