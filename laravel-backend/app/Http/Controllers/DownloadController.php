@@ -13,6 +13,20 @@ class DownloadController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->hasFile('file')) {
+            return response()->json([
+                'message' => 'File tidak terdeteksi oleh server. Pastikan ukuran file tidak melebihi batasan PHP (upload_max_filesize).',
+                'errors' => ['file' => ['File is missing in request']]
+            ], 422);
+        }
+
+        if (!$request->file('file')->isValid()) {
+            return response()->json([
+                'message' => 'File upload tidak valid: ' . $request->file('file')->getErrorMessage(),
+                'errors' => ['file' => [$request->file('file')->getErrorMessage()]]
+            ], 422);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|unique:downloads,slug',
