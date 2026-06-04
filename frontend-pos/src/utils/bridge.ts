@@ -172,11 +172,11 @@ export const bridgePrintSessionClose = async (req: any) => {
     }
 }
 
-export const checkBridgeStatus = async () => {
+export async function checkBridgeStatus(): Promise<boolean> {
     const bridge = await findBridgeBaseUrl()
     return bridge.ok
 }
 
-export const checkBridgeConnection = async () => {
+export async function checkBridgeConnection(): Promise<BridgeConnectionStatus> {
     return findBridgeBaseUrl()
 }

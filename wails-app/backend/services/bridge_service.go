@@ -45,10 +45,12 @@ func (s *BridgeService) Start() {
 
 	go func() {
 		addr := fmt.Sprintf(":%d", port)
-		log.Printf("[Bridge] Attempting to start server on %s", addr)
+		log.Printf("[Bridge] Starting server on %s...", addr)
 		if err := http.ListenAndServe(addr, handler); err != nil {
-			log.Printf("[Bridge] Critical Error: %v (Check if port %d is already in use)", err, port)
+			log.Printf("[Bridge] FATAL ERROR: %v. Port %d is already occupied by another process.", err, port)
+			return
 		}
+		log.Printf("[Bridge] Server is now listening on port %d", port)
 	}()
 }
 
