@@ -134,13 +134,14 @@ class DesktopLicenseController extends Controller
      */
     private function generateSignedBlob(DesktopLicense $license)
     {
-        $issuedTo = $license->licensee_name;
-        $deviceId = $license->device_id;
+        $issuedTo = trim($license->licensee_name);
+        $deviceId = trim($license->device_id);
         $issuedAt = now()->format('Y-m-d');
         $expiry = $license->expiry_date ? $license->expiry_date->format('Y-m-d') : "";
+        $serialKey = trim($license->serial_key);
 
-        // Format: IssuedTo|DeviceID|IssuedAt|Expiry
-        $payloadStr = "{$issuedTo}|{$deviceId}|{$issuedAt}|{$expiry}";
+        // Format: IssuedTo|DeviceID|IssuedAt|Expiry|SerialKey
+        $payloadStr = "{$issuedTo}|{$deviceId}|{$issuedAt}|{$expiry}|{$serialKey}";
         
         $privateKeyBase64 = env('DESKTOP_LICENSE_PRIVATE_KEY');
         $privateKey = base64_decode($privateKeyBase64);
@@ -157,7 +158,8 @@ class DesktopLicenseController extends Controller
                 'issued_to' => $issuedTo,
                 'device_id' => $deviceId,
                 'issued_at' => $issuedAt,
-                'expiry' => $expiry
+                'expiry' => $expiry,
+                'serial_key' => $serialKey
             ],
             'signature' => base64_encode($signature)
         ]);

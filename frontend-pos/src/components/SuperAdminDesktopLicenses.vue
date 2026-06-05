@@ -48,6 +48,7 @@
             </td>
             <td data-label="Aksi">
               <div class="action-buttons">
+                <button class="btn-icon" @click="shareToWhatsApp(lic)" title="Kirim via WhatsApp">📱</button>
                 <button class="btn-icon" @click="openModal(lic)" title="Edit">✏️</button>
                 <button class="btn-icon" @click="toggleActive(lic)" :title="lic.is_active ? 'Nonaktifkan' : 'Aktifkan'">
                   {{ lic.is_active ? '🚫' : '✅' }}
@@ -247,6 +248,14 @@ const copyKey = () => {
   navigator.clipboard.writeText(form.value.serial_key)
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
+}
+
+const shareToWhatsApp = (lic: any) => {
+  const expiry = lic.expiry_date ? formatDate(lic.expiry_date) : 'Selamanya (Lifetime)'
+  const message = `Halo ${lic.licensee_name || 'Pelanggan'},\n\nBerikut adalah Serial Key NessaPOS Desktop Anda:\n\n🔑 Serial Key: *${lic.serial_key}*\n📅 Masa Berlaku: *${expiry}*\n\nSilakan salin dan tempelkan key tersebut pada menu aktivasi di aplikasi desktop.\n\nTerima kasih telah menggunakan NessaPOS!`
+  
+  const encoded = encodeURIComponent(message)
+  window.open(`https://wa.me/?text=${encoded}`, '_blank')
 }
 
 const formatDate = (date: string) => {

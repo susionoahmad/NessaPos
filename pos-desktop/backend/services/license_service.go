@@ -49,13 +49,15 @@ type LicenseStatus struct {
 	DeviceID      string `json:"device_id"`
 	Licensee      string `json:"licensee"`
 	LicenseExpiry string `json:"license_expiry"`
+	SerialKey     string `json:"serial_key"`
 }
 
 type LicensePayload struct {
-	IssuedTo string `json:"issued_to"`
-	DeviceID string `json:"device_id"`
-	IssuedAt string `json:"issued_at"`
-	Expiry   string `json:"expiry"`
+	IssuedTo  string `json:"issued_to"`
+	DeviceID  string `json:"device_id"`
+	IssuedAt  string `json:"issued_at"`
+	Expiry    string `json:"expiry"`
+	SerialKey string `json:"serial_key"`
 }
 
 type LicenseFile struct {
@@ -97,6 +99,7 @@ func (s *LicenseService) GetStatus() (*LicenseStatus, error) {
 				DeviceID:      deviceID,
 				Licensee:      payload.IssuedTo,
 				LicenseExpiry: payload.Expiry,
+				SerialKey:     payload.SerialKey,
 			}, nil
 		}
 		return &LicenseStatus{
@@ -250,7 +253,13 @@ func verifyLicense(licenseText, deviceID string) (bool, LicensePayload, string) 
 }
 
 func formatLicensePayload(p LicensePayload) string {
-	return fmt.Sprintf("%s|%s|%s|%s", p.IssuedTo, p.DeviceID, p.IssuedAt, p.Expiry)
+	return fmt.Sprintf("%s|%s|%s|%s|%s",
+		strings.TrimSpace(p.IssuedTo),
+		strings.TrimSpace(p.DeviceID),
+		strings.TrimSpace(p.IssuedAt),
+		strings.TrimSpace(p.Expiry),
+		strings.TrimSpace(p.SerialKey),
+	)
 }
 
 func getDeviceID() string {

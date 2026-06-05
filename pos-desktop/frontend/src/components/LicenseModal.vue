@@ -30,6 +30,10 @@
             <button class="btn-copy" @click="copyDeviceId" :disabled="!status?.device_id">Salin</button>
           </div>
         </div>
+        <div class="status-row" v-if="status?.serial_key">
+          <span class="label">Serial Key:</span>
+          <span class="value serial-active">{{ status.serial_key }}</span>
+        </div>
         <div class="status-row" v-if="status?.reason">
           <span class="label">Catatan:</span>
           <span class="value reason">{{ status.reason }}</span>
@@ -214,6 +218,9 @@ onMounted(loadStatus)
 .value-badge.ok { background: #dcfce7; color: #15803d; }
 .value-badge.trial { background: #dbeafe; color: #1d4ed8; }
 .value-badge.expired, .value-badge.invalid { background: #fee2e2; color: #b91c1c; }
+
+.serial-active { font-family: monospace; color: #1f7a6a; font-weight: 800; font-size: 13px; }
+.reason { color: #e15e4d; font-size: 13px; font-weight: 700; }
 
 .device-info { flex: 1; display: flex; gap: 8px; align-items: center; }
 .device-id { font-family: monospace; font-size: 11px; background: #fff; border: 1px solid #e2e8ee; padding: 2px 8px; border-radius: 6px; color: #1f7a6a; flex: 1; overflow: hidden; text-overflow: ellipsis; }

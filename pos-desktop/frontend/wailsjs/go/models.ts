@@ -305,6 +305,7 @@ export namespace services {
 	    device_id: string;
 	    licensee: string;
 	    license_expiry: string;
+	    serial_key: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new LicenseStatus(source);
@@ -319,6 +320,7 @@ export namespace services {
 	        this.device_id = source["device_id"];
 	        this.licensee = source["licensee"];
 	        this.license_expiry = source["license_expiry"];
+	        this.serial_key = source["serial_key"];
 	    }
 	}
 	export class OrderRequest {
