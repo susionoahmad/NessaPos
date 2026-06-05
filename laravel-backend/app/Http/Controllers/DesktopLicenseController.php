@@ -57,7 +57,6 @@ class DesktopLicenseController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['message' => 'Data tidak valid.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error("License activation error: " . $e->getMessage());
             return response()->json(['message' => 'Gagal aktivasi: ' . $e->getMessage()], 500);
         }
     }
@@ -136,15 +135,13 @@ class DesktopLicenseController extends Controller
     {
         $issuedTo = trim($license->licensee_name);
         $deviceId = trim($license->device_id);
-        $issuedAt = now()->format('Y-m-d');
-        $expiry = $license->expiry_date ? $license->expiry_date->format('Y-m-d') : "";
+        $issuedAt = trim(now()->format('Y-m-d'));
+        $expiry = $license->expiry_date ? trim($license->expiry_date->format('Y-m-d')) : "";
         $serialKey = trim($license->serial_key);
 
         // Format: IssuedTo|DeviceID|IssuedAt|Expiry|SerialKey
-        $payloadStr = "{$issuedTo}|{$deviceId}|{$issuedAt}|{$expiry}|{$serialKey}";
+        $payloadStr = sprintf("%s|%s|%s|%s|%s", $issuedTo, $deviceId, $issuedAt, $expiry, $serialKey);
         
-        Log::info("DEBUG PHP Payload: [{$payloadStr}]");
-
         $privateKeyBase64 = env('DESKTOP_LICENSE_PRIVATE_KEY');
         $privateKey = base64_decode($privateKeyBase64);
 
@@ -154,7 +151,6 @@ class DesktopLicenseController extends Controller
 
         // Ed25519 Signature
         $signature = sodium_crypto_sign_detached($payloadStr, $privateKey);
-        Log::info("DEBUG PHP Signature: " . base64_encode($signature));
 
         return json_encode([
             'payload' => [
