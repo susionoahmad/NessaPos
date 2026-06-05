@@ -10,6 +10,7 @@ class SubscriptionPackage extends Model
         'slug',
         'name',
         'price',
+        'original_price',
         'duration_days',
         'features',
         'style',
@@ -18,6 +19,7 @@ class SubscriptionPackage extends Model
 
     protected $casts = [
         'price' => 'float',
+        'original_price' => 'float',
         'duration_days' => 'integer',
         'features' => 'array',
         'style' => 'array',

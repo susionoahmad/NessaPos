@@ -117,6 +117,7 @@ export default async function Home() {
   const dynamicPlans = apiPackages.length > 0 ? apiPackages.map((p: any) => ({
     name: p.name,
     price: p.slug === 'lifetime' ? `Rp ${p.price.toLocaleString('id-ID')}` : `Rp ${p.price.toLocaleString('id-ID')} / ${p.slug === 'monthly' ? 'bln' : 'thn'}`,
+    originalPrice: p.original_price ? (p.slug === 'lifetime' ? `Rp ${p.original_price.toLocaleString('id-ID')}` : `Rp ${p.original_price.toLocaleString('id-ID')}`) : null,
     details: (p.features || []).join(', ')
   })) : plans
 
@@ -294,10 +295,25 @@ export default async function Home() {
         </div>
         <div className="plans">
           {dynamicPlans.map((plan: any) => (
-            <article key={plan.name}>
-              <p>{plan.name}</p>
-              <h3>{plan.price}</h3>
-              <span>{plan.details}</span>
+            <article key={plan.name} className={plan.originalPrice ? 'plan-card promo' : 'plan-card'}>
+              {plan.originalPrice && <span className="promo-badge">Hemat Banget!</span>}
+              <p className="plan-name">{plan.name}</p>
+              <div className="plan-pricing">
+                {plan.originalPrice && (
+                  <div className="original-price-container">
+                    <span className="price-label">Harga normal:</span>
+                    <del className="strike-price">{plan.originalPrice}</del>
+                  </div>
+                )}
+                <div className="current-price-container">
+                  {plan.originalPrice && <span className="price-label label-now">Kini hanya:</span>}
+                  <h3 className="plan-price">{plan.price}</h3>
+                </div>
+              </div>
+              <span className="plan-details">{plan.details}</span>
+              <div className="plan-action">
+                <Link href="/coba-gratis" className="button signup-button">Mulai Sekarang</Link>
+              </div>
             </article>
           ))}
         </div>

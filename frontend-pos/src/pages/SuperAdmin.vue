@@ -116,7 +116,10 @@
           <div class="tc-body">
             <div class="tc-row">
               <span class="tc-label">Harga</span>
-              <span class="tc-value plan">Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+              <div class="tc-value plan">
+                <span v-if="pkg.original_price" class="original-price">Rp {{ pkg.original_price.toLocaleString('id-ID') }}</span>
+                <span>Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+              </div>
             </div>
             <div class="tc-row">
               <span class="tc-label">Fitur</span>
@@ -289,8 +292,12 @@
             <input v-model="packageForm.name" />
           </div>
           <div class="mf-group">
-            <label>Harga (Rupiah)</label>
+            <label>Harga Promo (Rupiah)</label>
             <input v-model.number="packageForm.price" type="number" />
+          </div>
+          <div class="mf-group">
+            <label>Harga Coret / Normal (Opsional)</label>
+            <input v-model.number="packageForm.original_price" type="number" placeholder="Kosongkan jika tidak promo" />
           </div>
           <div class="mf-group">
             <label>Daftar Fitur (Pisahkan dengan koma)</label>
@@ -347,6 +354,7 @@ const packageForm = ref({
   slug: '',
   name: '',
   price: 0,
+  original_price: 0,
   featuresStr: ''
 })
 
@@ -455,6 +463,7 @@ const openPackageModal = (pkg: any) => {
     slug: pkg.slug,
     name: pkg.name,
     price: pkg.price,
+    original_price: pkg.original_price || 0,
     featuresStr: (pkg.features || []).join(', ')
   }
   packageFormError.value = ''
@@ -476,6 +485,7 @@ const savePackageModal = async () => {
     await api.put(`/superadmin/packages/${editingPackageId.value}`, {
       name: packageForm.value.name,
       price: packageForm.value.price,
+      original_price: packageForm.value.original_price || null,
       features: features
     })
     
@@ -757,7 +767,8 @@ const rejectRenewal = async (id: number) => {
 .tc-row { display: flex; justify-content: space-between; align-items: center; }
 .tc-label { font-size: 12px; color: #64748b; font-weight: 600; }
 .tc-value { font-size: 13px; font-weight: 700; color: #e2e8f0; }
-.tc-value.plan { color: #38bdf8; }
+.tc-value.plan { color: #38bdf8; display: flex; flex-direction: column; align-items: flex-end; }
+.original-price { font-size: 11px; color: #94a3b8; text-decoration: line-through; margin-bottom: 2px; }
 
 .tc-footer {
   display: flex;

@@ -187,6 +187,7 @@ class SuperAdminController extends Controller
         $request->validate([
             'name' => 'required|string',
             'price' => 'required|numeric',
+            'original_price' => 'nullable|numeric',
             'features' => 'nullable|array',
             'is_active' => 'boolean'
         ]);
@@ -194,6 +195,7 @@ class SuperAdminController extends Controller
         $package->update($request->only([
             'name',
             'price',
+            'original_price',
             'features',
             'is_active'
         ]));

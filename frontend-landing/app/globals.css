@@ -444,17 +444,94 @@ a {
 
 .plans {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
 }
 
-.plans article p {
-  margin: 0;
-  color: #1f7a6a;
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.plan-card:hover {
+  transform: translateY(-8px);
+  border-color: #1f7a6a;
+  box-shadow: 0 20px 40px rgba(31, 122, 106, 0.15);
+}
+
+.plan-card.promo {
+  border: 2px solid #1f7a6a;
+  background: #ffffff;
+}
+
+.promo-badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: #1f7a6a;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(31, 122, 106, 0.3);
+}
+
+.plan-name {
+  font-size: 1rem;
   font-weight: 850;
+  color: #1f7a6a !important;
+  margin-bottom: 20px !important;
 }
 
-.plans h3 {
-  margin-top: 12px;
-  font-size: 2rem;
+.plan-pricing {
+  margin-bottom: 20px;
+}
+
+.original-price-container {
+  margin-bottom: 4px;
+}
+
+.price-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.label-now {
+  color: #1f7a6a;
+}
+
+.strike-price {
+  font-size: 1.15rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.plan-price {
+  margin: 0 !important;
+  font-size: 2.25rem !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em;
+}
+
+.plan-details {
+  font-size: 0.94rem !important;
+  line-height: 1.6 !important;
+  margin-bottom: 24px !important;
+  display: block;
+}
+
+.plan-action {
+  margin-top: auto;
+}
+
+.signup-button {
+  width: 100%;
 }
 
 .faq-grid {
