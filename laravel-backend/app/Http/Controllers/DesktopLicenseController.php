@@ -36,7 +36,7 @@ class DesktopLicenseController extends Controller
             }
 
             if (!$license->device_id) {
-                $license->device_id = $request->device_id;
+                $license->device_id = trim($request->device_id);
                 $license->activated_at = now();
                 $license->save();
             }
@@ -143,6 +143,8 @@ class DesktopLicenseController extends Controller
         // Format: IssuedTo|DeviceID|IssuedAt|Expiry|SerialKey
         $payloadStr = "{$issuedTo}|{$deviceId}|{$issuedAt}|{$expiry}|{$serialKey}";
         
+        Log::info("DEBUG PHP Payload: [{$payloadStr}]");
+
         $privateKeyBase64 = env('DESKTOP_LICENSE_PRIVATE_KEY');
         $privateKey = base64_decode($privateKeyBase64);
 
@@ -152,6 +154,7 @@ class DesktopLicenseController extends Controller
 
         // Ed25519 Signature
         $signature = sodium_crypto_sign_detached($payloadStr, $privateKey);
+        Log::info("DEBUG PHP Signature: " . base64_encode($signature));
 
         return json_encode([
             'payload' => [

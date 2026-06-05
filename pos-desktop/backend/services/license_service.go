@@ -246,6 +246,8 @@ func verifyLicense(licenseText, deviceID string) (bool, LicensePayload, string) 
 		return false, LicensePayload{}, "Signature base64 invalid"
 	}
 	msg := []byte(formatLicensePayload(lf.Payload))
+	fmt.Printf("DEBUG Go Msg: [%s]\n", string(msg))
+	fmt.Printf("DEBUG Go Sig: [%s]\n", lf.Signature)
 	if !ed25519.Verify(pubKey, msg, sig) {
 		return false, LicensePayload{}, "Signature tidak valid"
 	}
