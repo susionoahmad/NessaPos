@@ -30,6 +30,7 @@ Route::post('/affiliate-links/{affiliate}/click', [PublicContentController::clas
 // Authenticated routes
 Route::middleware(['auth:sanctum', 'subscription'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::put('/settings/subscription', [SettingController::class, 'updateSubscription']);
     Route::post('/settings/setup', [SettingController::class, 'setup']);
     Route::post('/subscription/renew', [SubscriptionRenewalController::class, 'store']);

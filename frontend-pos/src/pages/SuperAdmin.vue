@@ -17,6 +17,7 @@
           <b>{{ tenants.filter(t => t.subscription_status === 'active').length }}</b> Aktif
         </span>
         <button class="btn-new-tenant" @click="openNewModal">+ Toko Baru</button>
+        <button class="btn-change-password" @click="showPwdModal = true">🔑 Ganti Password</button>
       </div>
     </div>
 
@@ -313,6 +314,37 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal: Change Password -->
+    <div v-if="showPwdModal" class="modal-overlay" @click.self="closePwdModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Ganti Password SuperAdmin</h3>
+          <button class="modal-close" @click="closePwdModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="mf-group">
+            <label>Password Saat Ini</label>
+            <input v-model="pwdForm.current_password" type="password" />
+          </div>
+          <div class="mf-group">
+            <label>Password Baru</label>
+            <input v-model="pwdForm.new_password" type="password" placeholder="Min. 6 karakter" />
+          </div>
+          <div class="mf-group">
+            <label>Konfirmasi Password Baru</label>
+            <input v-model="pwdForm.new_password_confirmation" type="password" />
+          </div>
+          <div v-if="pwdError" class="mf-error">{{ pwdError }}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closePwdModal">Batal</button>
+          <button class="btn-save" @click="handleUpdatePassword" :disabled="updatingPwd">
+            {{ updatingPwd ? 'Memperbarui...' : 'Simpan Password' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -369,6 +401,44 @@ const form = ref({
   subscription_active_until: '',
   trial_ends_at: '',
 })
+
+// Change Password State
+const showPwdModal = ref(false)
+const updatingPwd = ref(false)
+const pwdError = ref('')
+const pwdForm = ref({
+  current_password: '',
+  new_password: '',
+  new_password_confirmation: ''
+})
+
+const closePwdModal = () => {
+  showPwdModal.value = false
+  pwdError.value = ''
+  pwdForm.value = { current_password: '', new_password: '', new_password_confirmation: '' }
+}
+
+const handleUpdatePassword = async () => {
+  pwdError.value = ''
+  if (!pwdForm.value.current_password) { pwdError.value = 'Password saat ini wajib diisi'; return }
+  if (pwdForm.value.new_password.length < 6) { pwdError.value = 'Password baru minimal 6 karakter'; return }
+  if (pwdForm.value.new_password !== pwdForm.value.new_password_confirmation) { pwdError.value = 'Konfirmasi password tidak cocok'; return }
+
+  updatingPwd.value = true
+  try {
+    await api.post('/change-password', {
+      current_password: pwdForm.value.current_password,
+      new_password: pwdForm.value.new_password,
+      new_password_confirmation: pwdForm.value.new_password_confirmation
+    })
+    showAlert('Password berhasil diperbarui!')
+    closePwdModal()
+  } catch (e: any) {
+    pwdError.value = e.response?.data?.message || 'Terjadi kesalahan saat memperbarui password'
+  } finally {
+    updatingPwd.value = false
+  }
+}
 
 const showAlert = (msg: string, type = 'success') => {
   alert.value = { msg, type }
@@ -664,6 +734,26 @@ const rejectRenewal = async (id: number) => {
   white-space: nowrap;
 }
 .btn-new-tenant:hover { opacity: 0.85; transform: translateY(-1px); }
+
+.btn-change-password {
+  background: rgba(255,255,255,0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-change-password:hover {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+}
 
 /* Alert */
 .sa-alert {
