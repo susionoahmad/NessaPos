@@ -469,13 +469,14 @@ a {
   position: absolute;
   top: -12px;
   right: 20px;
-  background: #1f7a6a;
-  color: #fff;
-  padding: 4px 12px;
+  background: #fbbf24; /* Warnanya lebih cerah (Kuning) */
+  color: #1e293b;      /* Teks gelap untuk kontras maksimal */
+  padding: 4px 14px;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 800;
-  box-shadow: 0 4px 12px rgba(31, 122, 106, 0.3);
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  text-transform: uppercase;
 }
 
 .plan-name {
