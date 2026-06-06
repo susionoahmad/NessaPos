@@ -225,6 +225,9 @@
         <h2>Sesi Belum Dibuka</h2>
         <p>Anda harus membuka sesi kasir sebelum melakukan transaksi.</p>
         <button class="btn-primary" @click="showSessionOpenModal = true">Buka Sesi Sekarang</button>
+        <div class="blocker-actions">
+          <button class="btn-outline-danger" @click="auth.logout().then(() => router.push('/'))">Logout Akun</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1287,7 +1290,7 @@ const removeItem = (idx: number) => {
 .session-blocker {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(241, 245, 249, 0.8);
+  background: rgba(241, 245, 249, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -1321,6 +1324,33 @@ const removeItem = (idx: number) => {
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+}
+.btn-outline-danger {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-outline-danger:hover {
+  background: #ef4444;
+  color: white;
+}
+.blocker-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .blocker-card {
+    padding: 24px;
+    margin: 15px;
+    width: calc(100% - 30px);
+  }
 }
 
 /* Response POS Layout */

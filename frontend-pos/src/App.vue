@@ -234,7 +234,7 @@ onMounted(async () => {
   position: absolute;
   top: 15px;
   left: 15px;
-  z-index: 90;
+  z-index: 1100;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -251,7 +251,7 @@ onMounted(async () => {
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5);
   backdrop-filter: blur(2px);
-  z-index: 99;
+  z-index: 1200;
 }
 
 @media (max-width: 768px) {
@@ -264,7 +264,7 @@ onMounted(async () => {
     left: -280px;
     height: 100vh;
     height: 100dvh; /* Better handling for mobile address bars */
-    z-index: 100;
+    z-index: 1300;
     width: 260px;
     transition: left 0.3s ease;
     box-shadow: 10px 0 30px rgba(0,0,0,0.5);
