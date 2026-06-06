@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { apiUrl, fetchWithTimeout } from '../lib/api'
 import Header from '../components/Header'
+import TryOptionButton from '../components/TryOptionButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,9 +65,11 @@ export default async function TryFreePage() {
             <p>{option.description}</p>
             {option.note && <span>{option.note}</span>}
             <div className="option-actions">
-              <a href={option.link_url} className="button">
-                {option.link_label}
-              </a>
+              <TryOptionButton
+                url={option.link_url}
+                label={option.link_label}
+                title={option.title}
+              />
             </div>
           </article>
         ))}

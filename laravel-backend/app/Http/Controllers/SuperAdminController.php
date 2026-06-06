@@ -215,6 +215,20 @@ class SuperAdminController extends Controller
             'pending_renewals_count' => \App\Models\SubscriptionRenewalRequest::where('status', 'pending')->count(),
             'total_tenants' => Tenant::withoutGlobalScopes()->count(),
             'active_tenants' => Tenant::withoutGlobalScopes()->where('is_active', true)->count(),
+            'site_stats' => [
+                'landing_page_visits' => \App\Models\SiteAnalytic::where('event_type', 'landing_page_visit')->count(),
+                'desktop_download_clicks' => \App\Models\SiteAnalytic::whereIn('event_type', ['desktop_download_click', 'desktop_download_local_click', 'desktop_download_cloud_click'])->count(),
+                'desktop_download_local_clicks' => \App\Models\SiteAnalytic::where('event_type', 'desktop_download_local_click')->count(),
+                'desktop_download_cloud_clicks' => \App\Models\SiteAnalytic::where('event_type', 'desktop_download_cloud_click')->count(),
+                'pos_frontend_clicks' => \App\Models\SiteAnalytic::where('event_type', 'pos_frontend_click')->count(),
+                // Daily stats for the last 30 days could be added here if needed
+                'daily_visits' => \App\Models\SiteAnalytic::where('event_type', 'landing_page_visit')
+                    ->where('created_at', '>=', now()->subDays(30))
+                    ->selectRaw('DATE(created_at) as date, count(*) as count')
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
+            ]
         ]);
     }
 }

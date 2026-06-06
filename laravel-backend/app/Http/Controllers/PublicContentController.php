@@ -82,4 +82,19 @@ class PublicContentController extends Controller
             'url' => $affiliate->url,
         ]);
     }
+
+    public function trackEvent(Request $request)
+    {
+        $request->validate([
+            'event_type' => 'required|string|in:landing_page_visit,desktop_download_click,pos_frontend_click,desktop_download_local_click,desktop_download_cloud_click',
+        ]);
+
+        \App\Models\SiteAnalytic::create([
+            'event_type' => $request->event_type,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
 }

@@ -26,6 +26,7 @@ Route::get('/posts', [PublicContentController::class, 'posts']);
 Route::get('/posts/{slug}', [PublicContentController::class, 'post']);
 Route::get('/devices/recommendation', [PublicContentController::class, 'deviceRecommendation']);
 Route::post('/affiliate-links/{affiliate}/click', [PublicContentController::class, 'affiliateClick']);
+Route::post('/analytics/track', [PublicContentController::class, 'trackEvent']);
 
 // Authenticated routes
 Route::middleware(['auth:sanctum', 'subscription'])->group(function () {

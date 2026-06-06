@@ -18,10 +18,13 @@ function getWhatsAppLink() {
   return `https://wa.me/${phone}?text=${message}`
 }
 
+import AnalyticsTracker from './components/AnalyticsTracker'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
       <body>
+        <AnalyticsTracker />
         {children}
         <a
           className="floating-wa"

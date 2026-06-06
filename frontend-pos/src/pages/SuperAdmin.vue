@@ -31,6 +31,7 @@
       </button>
       <button :class="{ active: activeTab === 'cms' }" @click="activeTab = 'cms'">CMS & Marketing</button>
       <button :class="{ active: activeTab === 'desktop' }" @click="activeTab = 'desktop'">Lisensi Desktop</button>
+      <button :class="{ active: activeTab === 'analytics' }" @click="activeTab = 'analytics'">Analitik Landing</button>
     </div>
 
     <!-- Alert -->
@@ -204,6 +205,58 @@
     <div class="sa-content" v-else-if="activeTab === 'desktop'">
       <SuperAdminDesktopLicenses />
     </div>
+    <div class="sa-content" v-else-if="activeTab === 'analytics'">
+      <div class="analytics-dashboard">
+        <div class="stats-overview">
+          <div class="stat-card">
+            <div class="stat-icon">👁️</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Kunjungan Link</span>
+              <h2 class="stat-value">{{ saStats.site_stats?.landing_page_visits || 0 }}</h2>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💻</div>
+            <div class="stat-info">
+              <span class="stat-label">Download Versi Desktop</span>
+              <h2 class="stat-value">{{ saStats.site_stats?.desktop_download_clicks || 0 }}</h2>
+              <div class="stat-breakdown">
+                <span>Lokal: {{ saStats.site_stats?.desktop_download_local_clicks || 0 }}</span>
+                <span>Cloud: {{ saStats.site_stats?.desktop_download_cloud_clicks || 0 }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🌐</div>
+            <div class="stat-info">
+              <span class="stat-label">Buka POS Web</span>
+              <h2 class="stat-value">{{ saStats.site_stats?.pos_frontend_clicks || 0 }}</h2>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="saStats.site_stats?.daily_visits?.length > 0" class="daily-chart-container">
+          <h3>Kunjungan 30 Hari Terakhir</h3>
+          <div class="chart-bars">
+            <div 
+              v-for="day in saStats.site_stats.daily_visits" 
+              :key="day.date" 
+              class="chart-bar-wrapper"
+              :title="`${day.date}: ${day.count} kunjungan`"
+            >
+              <div 
+                class="chart-bar" 
+                :style="{ height: `${(day.count / Math.max(...saStats.site_stats.daily_visits.map((d: any) => d.count), 1)) * 100}%` }"
+              ></div>
+              <span class="bar-date">{{ day.date.substring(8, 10) }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-analytics">
+          <p>Belum ada data kunjungan untuk ditampilkan.</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: New / Edit Tenant -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
@@ -374,10 +427,18 @@ const savingPackage = ref(false)
 // Renewal State
 const renewals = ref<any[]>([])
 const loadingRenewals = ref(false)
-const saStats = ref({
+const saStats = ref<any>({
   pending_renewals_count: 0,
   total_tenants: 0,
-  active_tenants: 0
+  active_tenants: 0,
+  site_stats: {
+    landing_page_visits: 0,
+    desktop_download_clicks: 0,
+    desktop_download_local_clicks: 0,
+    desktop_download_cloud_clicks: 0,
+    pos_frontend_clicks: 0,
+    daily_visits: []
+  }
 })
 
 const renewalStatusFilter = ref('pending')
@@ -978,11 +1039,115 @@ const rejectRenewal = async (id: number) => {
   cursor: pointer;
 }
 
-.processed-info {
+.processing-info {
   font-size: 11px;
   color: #64748b;
   justify-content: center;
-  padding: 10px;
+}
+
+/* Analytics */
+.analytics-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+}
+.stat-icon {
+  font-size: 32px;
+  background: rgba(14, 165, 233, 0.1);
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+.stat-label {
+  font-size: 14px;
+  color: #94a3b8;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 4px 0 0;
+  color: white;
+}
+.stat-breakdown {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.daily-chart-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 24px;
+  border-radius: 16px;
+}
+.daily-chart-container h3 {
+  margin: 0 0 24px;
+  font-size: 16px;
+  color: #cbd5e1;
+}
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 150px;
+  gap: 4px;
+}
+.chart-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(to top, #0ea5e9, #6366f1);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.5s ease-out;
+}
+.bar-date {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.empty-analytics {
+  text-align: center;
+  padding: 80px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #64748b;
 }
 
 .tc-status.pending { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
