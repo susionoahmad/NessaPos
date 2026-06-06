@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { apiUrl, fetchWithTimeout } from './lib/api'
 import Header from './components/Header'
+import AnalyticsTracker from './components/AnalyticsTracker'
 
 export const dynamic = 'force-dynamic'
 
@@ -126,6 +127,7 @@ export default async function Home() {
 
   return (
     <main className="page-shell">
+      <AnalyticsTracker />
       <Header />
 
       <section className="hero" id="beranda">

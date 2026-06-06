@@ -37,10 +37,7 @@ export function track(eventType: 'landing_page_visit' | 'desktop_download_click'
 
 export default function AnalyticsTracker() {
   useEffect(() => {
-    // Only track home page visit for now
-    if (window.location.pathname === '/') {
-      track('landing_page_visit')
-    }
+    track('landing_page_visit')
   }, [])
 
   return null
