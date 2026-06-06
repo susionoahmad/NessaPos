@@ -247,7 +247,9 @@
               <div 
                 class="chart-bar" 
                 :style="{ height: `${(day.count / Math.max(...saStats.site_stats.daily_visits.map((d: any) => d.count), 1)) * 100}%` }"
-              ></div>
+              >
+                <span v-if="day.count > 0" class="bar-count">{{ day.count }}</span>
+              </div>
               <span class="bar-date">{{ day.date.substring(8, 10) }}</span>
             </div>
           </div>
@@ -1134,11 +1136,26 @@ const rejectRenewal = async (id: number) => {
   background: linear-gradient(to top, #0ea5e9, #6366f1);
   border-radius: 4px 4px 0 0;
   min-height: 2px;
+  position: relative;
   transition: height 0.5s ease-out;
 }
+.chart-bar:hover {
+  background: linear-gradient(to top, #38bdf8, #818cf8);
+}
+.bar-count {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  color: #38bdf8;
+  white-space: nowrap;
+}
 .bar-date {
-  font-size: 10px;
+  font-size: 8px;
   color: #64748b;
+  margin-top: 4px;
 }
 
 .empty-analytics {

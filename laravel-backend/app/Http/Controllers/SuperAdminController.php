@@ -218,16 +218,17 @@ class SuperAdminController extends Controller
             'site_stats' => [
                 'landing_page_visits' => \App\Models\SiteAnalytic::where('event_type', 'landing_page_visit')->count(),
                 'desktop_download_clicks' => \App\Models\SiteAnalytic::whereIn('event_type', ['desktop_download_click', 'desktop_download_local_click', 'desktop_download_cloud_click'])->count(),
-                'desktop_download_local_clicks' => \App\Models\SiteAnalytic::where('event_type', 'desktop_download_local_click')->count(),
+                'desktop_download_local_clicks' => \App\Models\SiteAnalytic::whereIn('event_type', ['desktop_download_local_click', 'desktop_download_click'])->count(),
                 'desktop_download_cloud_clicks' => \App\Models\SiteAnalytic::where('event_type', 'desktop_download_cloud_click')->count(),
                 'pos_frontend_clicks' => \App\Models\SiteAnalytic::where('event_type', 'pos_frontend_click')->count(),
-                // Daily stats for the last 30 days could be added here if needed
-                'daily_visits' => \App\Models\SiteAnalytic::where('event_type', 'landing_page_visit')
-                    ->where('created_at', '>=', now()->subDays(30))
-                    ->selectRaw('DATE(created_at) as date, count(*) as count')
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get()
+                // Daily stats for the last 30 days filled with 0s for missing dates
+                'daily_visits' => collect(range(0, 29))->reverse()->map(function ($days) {
+                    $date = now()->subDays($days)->format('Y-m-d');
+                    $count = \App\Models\SiteAnalytic::where('event_type', 'landing_page_visit')
+                        ->whereDate('created_at', $date)
+                        ->count();
+                    return ['date' => $date, 'count' => $count];
+                })->values()
             ]
         ]);
     }

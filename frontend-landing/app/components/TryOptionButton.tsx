@@ -14,12 +14,12 @@ export default function TryOptionButton({ url, label, title }: TryOptionButtonPr
     const text = (title + ' ' + label).toLowerCase()
 
     if (isDesktop) {
-      if (text.includes('local') || text.includes('lokal')) {
-        track('desktop_download_local_click')
-      } else if (text.includes('cloud')) {
+      // Perluas deteksi: jika ada kata cloud, masuk cloud. Selain itu masuk Lokal (Default).
+      if (text.includes('cloud') || text.includes('online')) {
         track('desktop_download_cloud_click')
       } else {
-        track('desktop_download_click')
+        // Otomatis Lokal jika tidak ada kata 'cloud' atau 'online'
+        track('desktop_download_local_click')
       }
     } else if (title.toLowerCase().includes('web') || title.toLowerCase().includes('pos')) {
       track('pos_frontend_click')
