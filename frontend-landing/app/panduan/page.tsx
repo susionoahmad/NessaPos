@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import Header from '../components/Header'
 
 export const metadata: Metadata = {
   title: 'Panduan Setup & Printer - NessaPOS',
@@ -9,19 +10,7 @@ export const metadata: Metadata = {
 export default function PanduanPage() {
   return (
     <main className="page-shell">
-      <header className="site-header">
-        <Link href="/" className="brand" aria-label="NessaPOS home">
-          <span className="brand-mark">N</span>
-          <span>NessaPOS</span>
-        </Link>
-        <nav aria-label="Navigasi utama">
-          <Link href="/#fitur">Fitur</Link>
-          <Link href="/#harga">Paket</Link>
-          <Link href="/panduan">Panduan</Link>
-          <Link href="/kontak">Kontak</Link>
-          <Link href="/coba-gratis" className="nav-cta">Coba Gratis</Link>
-        </nav>
-      </header>
+      <Header />
 
       <section className="article">
         <span className="eyebrow">Pusat Bantuan</span>

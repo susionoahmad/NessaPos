@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { apiUrl } from '../lib/api'
+import { apiUrl, fetchWithTimeout } from '../lib/api'
+import Header from '../components/Header'
 
 export const dynamic = 'force-dynamic'
 
 async function getPosts() {
   try {
-    const res = await fetch(apiUrl('/posts'), {
+    const res = await fetchWithTimeout(apiUrl('/posts'), {
       cache: 'no-store',
+      timeout: 3000
     })
     if (!res.ok) throw new Error('Failed to fetch')
     const json = await res.json()
@@ -22,15 +24,7 @@ export default async function Blog() {
 
   return (
     <main className="page-shell">
-      <header className="site-header">
-        <Link href="/" className="brand" aria-label="NessaPOS home">
-          <span className="brand-mark">N</span>
-          <span>NessaPOS</span>
-        </Link>
-        <nav aria-label="Navigasi blog">
-          <Link href="/">Beranda</Link>
-        </nav>
-      </header>
+      <Header />
       <section className="blog-hero">
         <span className="eyebrow">Blog</span>
         <h1>Panduan POS untuk toko modern</h1>

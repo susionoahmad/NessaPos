@@ -1,14 +1,16 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AffiliateImage from './AffiliateImage'
-import { apiUrl } from '../../lib/api'
+import { apiUrl, fetchWithTimeout } from '../../lib/api'
+import Header from '../../components/Header'
 
 export const dynamic = 'force-dynamic'
 
 async function getPost(slug: string) {
   try {
-    const res = await fetch(apiUrl(`/posts/${slug}`), {
+    const res = await fetchWithTimeout(apiUrl(`/posts/${slug}`), {
       cache: 'no-store',
+      timeout: 3000
     })
     if (!res.ok) throw new Error('Failed to fetch')
     return await res.json()
@@ -47,16 +49,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
 
   return (
     <main className="page-shell">
-      <header className="site-header">
-        <Link href="/" className="brand" aria-label="NessaPOS home">
-          <span className="brand-mark">N</span>
-          <span>NessaPOS</span>
-        </Link>
-        <nav aria-label="Navigasi artikel">
-          <Link href="/blog">Blog</Link>
-          <Link href="/">Beranda</Link>
-        </nav>
-      </header>
+      <Header />
       <article className="article">
         <Link href="/blog" className="back-link">Kembali ke blog</Link>
         <span className="eyebrow">Insight</span>

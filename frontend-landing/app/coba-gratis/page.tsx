@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { apiUrl } from '../lib/api'
+import { apiUrl, fetchWithTimeout } from '../lib/api'
+import Header from '../components/Header'
 
 export const dynamic = 'force-dynamic'
 
 async function getTryPage() {
   try {
-    const res = await fetch(apiUrl('/pages/coba-gratis'), {
+    const res = await fetchWithTimeout(apiUrl('/pages/coba-gratis'), {
       cache: 'no-store',
+      timeout: 3000
     })
     if (!res.ok) throw new Error('Failed to fetch coba-gratis page')
     return res.json()
@@ -47,16 +49,7 @@ export default async function TryFreePage() {
 
   return (
     <main className="page-shell">
-      <header className="site-header">
-        <Link href="/" className="brand" aria-label="NessaPOS home">
-          <span className="brand-mark">N</span>
-          <span>NessaPOS</span>
-        </Link>
-        <nav aria-label="Navigasi coba gratis">
-          <Link href="/">Beranda</Link>
-          <Link href="/blog">Blog</Link>
-        </nav>
-      </header>
+      <Header />
 
       <section className="try-hero">
         <span className="eyebrow">Coba gratis</span>
