@@ -38,7 +38,7 @@ return [
     'allowed_origins_patterns' => env('CORS_ALLOW_ALL', false) ? [] : [
         '/^https?:\/\/(localhost|127\.0\.0\.1|wails\.localhost)(:\d+)?$/',
         '/^wails:\/\/wails(\.localhost)?(:\d+)?$/',
-        '/^https?:\/\/([a-z0-9-]+\.)?nessapos\.com$/',
+        '/^https?:\/\/([a-z0-9-]+\.)?nessapos\.(com|my\.id)$/',
         '/^https:\/\/[a-z0-9-]+([-.][a-z0-9-]+)*\.vercel\.app$/',
     ],
 
