@@ -133,7 +133,7 @@ export default function PanduanPage() {
               <li>Isi <strong>Username</strong> dan <strong>Password</strong> untuk kasir tersebut.</li>
               <li>Klik <strong>Simpan</strong>. Akun kasir siap digunakan.</li>
               <li>Berikan username dan password tersebut kepada kasir Anda.</li>
-              <li>Kasir login di <strong>alamat yang sama</strong> ({'"'}pos-nessapos.vercel.app{'"'} atau alamat domain Anda), lalu pilih menu <strong>Buka Sesi Kasir</strong> untuk mulai bekerja.</li>
+              <li>Kasir login di <strong>alamat yang sama</strong> ({'"'}pos.nessapos.my.id{'"'}), lalu pilih menu <strong>Buka Sesi Kasir</strong> untuk mulai bekerja.</li>
             </ol>
 
             <div style={{ background: '#dcfce7', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', fontSize: '14px' }}>
@@ -145,7 +145,7 @@ export default function PanduanPage() {
         <section id="printer" style={{ marginTop: '60px' }}>
           <h2>3. Panduan Setup Printer Thermal</h2>
           <p>NessaPOS mendukung berbagai cara untuk mencetak struk tergantung pada perangkat yang Anda gunakan.</p>
-          
+
           <div className="affiliate-section" style={{ background: '#f0f9f6', borderLeft: '4px solid #1f7a6a', marginTop: '24px' }}>
             <h3 style={{ marginTop: 0 }}>A. Browser Print (Kiosk Mode)</h3>
             <p>Paling praktis untuk PC Desktop yang hanya menggunakan satu printer thermal.</p>
