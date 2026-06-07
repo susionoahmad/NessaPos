@@ -11,25 +11,6 @@ use Illuminate\Http\Request;
 
 class PublicContentController extends Controller
 {
-    private function isBot(Request $request): bool
-    {
-        $userAgent = strtolower($request->userAgent() ?? '');
-        $bots = [
-            'bot', 'spider', 'crawler', 'googlebot', 'bingbot', 'slurp',
-            'duckduckbot', 'baiduspider', 'yandexbot', 'sogou', 'exabot',
-            'facebookexternalhit', 'ia_archiver', 'twitterbot', 'linkedinbot',
-            'slackbot', 'discordbot', 'telegrambot', 'whatsapp'
-        ];
-
-        foreach ($bots as $bot) {
-            if (str_contains($userAgent, $bot)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public function page(string $slug)
     {
         $page = Page::where('slug', $slug)
@@ -92,7 +73,7 @@ class PublicContentController extends Controller
     {
         $affiliate->newQuery()->whereKey($affiliate->id)->where('is_active', true)->firstOrFail();
 
-        if (!$this->isBot($request)) {
+        if (!\App\Models\SiteAnalytic::isBot($request->userAgent())) {
             $affiliate->clicks()->create([
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -110,7 +91,7 @@ class PublicContentController extends Controller
             'event_type' => 'required|string|in:landing_page_visit,desktop_download_click,pos_frontend_click,desktop_download_local_click,desktop_download_cloud_click',
         ]);
 
-        if (!$this->isBot($request)) {
+        if (!\App\Models\SiteAnalytic::isBot($request->userAgent())) {
             \App\Models\SiteAnalytic::create([
                 'event_type' => $request->event_type,
                 'ip_address' => $request->ip(),
