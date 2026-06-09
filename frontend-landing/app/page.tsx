@@ -118,12 +118,18 @@ export default async function Home() {
   })() : []
 
   const apiPackages = await getPackages()
-  const dynamicPlans = apiPackages.length > 0 ? apiPackages.map((p: any) => ({
-    name: p.name,
-    price: p.slug === 'lifetime' ? `Rp ${p.price.toLocaleString('id-ID')}` : `Rp ${p.price.toLocaleString('id-ID')} / ${p.slug === 'monthly' ? 'bln' : 'thn'}`,
-    originalPrice: p.original_price ? (p.slug === 'lifetime' ? `Rp ${p.original_price.toLocaleString('id-ID')}` : `Rp ${p.original_price.toLocaleString('id-ID')}`) : null,
-    details: (p.features || []).join(', ')
-  })) : plans
+  const dynamicPlans = apiPackages.length > 0 ? apiPackages.map((p: any) => {
+    const isLifetime = p.slug.includes('lifetime')
+    const isMonthly = p.slug.includes('monthly')
+    const priceSuffix = isLifetime ? '' : (isMonthly ? ' / bln' : ' / thn')
+    
+    return {
+      name: p.name,
+      price: `Rp ${p.price.toLocaleString('id-ID')}${priceSuffix}`,
+      originalPrice: p.original_price ? (isLifetime ? `Rp ${p.original_price.toLocaleString('id-ID')}` : `Rp ${p.original_price.toLocaleString('id-ID')}`) : null,
+      details: (p.features || []).join(', ')
+    }
+  }) : plans
 
   return (
     <main className="page-shell">
