@@ -54,7 +54,7 @@ class SuperAdminController extends Controller
             'slug' => 'nullable|string|unique:tenants,slug',
             'admin_username' => 'required|string',
             'admin_password' => 'required|string|min:6',
-            'subscription_plan' => 'in:trial,monthly,yearly,lifetime',
+            'subscription_plan' => 'in:trial,monthly,yearly,lifetime,local_monthly,local_yearly,local_lifetime',
         ]);
 
         $slug = $request->slug ?? Str::slug($request->name);
@@ -112,7 +112,7 @@ class SuperAdminController extends Controller
         $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
 
         $request->validate([
-            'subscription_plan' => 'in:trial,monthly,yearly,lifetime',
+            'subscription_plan' => 'in:trial,monthly,yearly,lifetime,local_monthly,local_yearly,local_lifetime',
             'subscription_active_until' => 'nullable|date',
             'trial_ends_at' => 'nullable|date',
             'is_active' => 'boolean',
@@ -178,6 +178,29 @@ class SuperAdminController extends Controller
     }
 
     /**
+     * Create a new subscription package
+     */
+    public function storePackage(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'slug' => 'required|string|unique:subscription_packages,slug',
+            'price' => 'required|numeric',
+            'original_price' => 'nullable|numeric',
+            'duration_days' => 'nullable|integer',
+            'features' => 'nullable|array',
+            'style' => 'nullable|array',
+        ]);
+
+        $package = SubscriptionPackage::create($request->all());
+
+        return response()->json([
+            'message' => 'Paket berhasil dibuat',
+            'package' => $package
+        ], 201);
+    }
+
+    /**
      * Update a subscription package
      */
     public function updatePackage(Request $request, $id)
@@ -204,6 +227,17 @@ class SuperAdminController extends Controller
             'message' => 'Paket berhasil diperbarui',
             'package' => $package
         ]);
+    }
+
+    /**
+     * Delete a subscription package
+     */
+    public function destroyPackage($id)
+    {
+        $package = SubscriptionPackage::findOrFail($id);
+        $package->delete();
+
+        return response()->json(['message' => 'Paket berhasil dihapus']);
     }
 
     /**

@@ -94,7 +94,9 @@ Route::middleware(['auth:sanctum', 'subscription'])->group(function () {
         
         // Subscription Packages
         Route::get('/packages', [SuperAdminController::class, 'listPackages']);
+        Route::post('/packages', [SuperAdminController::class, 'storePackage']);
         Route::put('/packages/{id}', [SuperAdminController::class, 'updatePackage']);
+        Route::delete('/packages/{id}', [SuperAdminController::class, 'destroyPackage']);
 
         // Renewal Approvals
         Route::get('/renewals', [SubscriptionRenewalController::class, 'index']);

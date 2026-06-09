@@ -104,34 +104,70 @@
       </div>
     </div>
 
-    <!-- Packages Grid -->
     <div class="sa-content" v-else-if="activeTab === 'packages'">
+      <div class="sa-sub-header">
+        <h2 class="sub-title">Pengaturan Paket Lisensi</h2>
+        <button class="btn-new-tenant" @click="openNewPackageModal()">+ Paket Baru</button>
+      </div>
+
       <div v-if="loadingPackages" class="sa-loading">Memuat data paket...</div>
-      <div v-else class="tenant-grid packages-grid">
-        <div v-for="pkg in packages" :key="pkg.id" class="tenant-card package-card">
-          <div class="tc-header">
-            <div class="tc-info">
-              <div class="tc-name">{{ pkg.name }}</div>
-              <div class="tc-slug">ID: {{ pkg.slug }}</div>
-            </div>
-          </div>
-          <div class="tc-body">
-            <div class="tc-row">
-              <span class="tc-label">Harga</span>
-              <div class="tc-value plan">
-                <span v-if="pkg.original_price" class="original-price">Rp {{ pkg.original_price.toLocaleString('id-ID') }}</span>
-                <span>Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+      <div v-else>
+        <h3 class="section-divider">☁️ Paket Cloud</h3>
+        <div class="tenant-grid packages-grid">
+          <div v-for="pkg in packages.filter(p => !p.slug.startsWith('local'))" :key="pkg.id" class="tenant-card package-card cloud">
+            <div class="tc-header">
+              <div class="tc-info">
+                <div class="tc-name">{{ pkg.name }}</div>
+                <div class="tc-slug">ID: {{ pkg.slug }}</div>
               </div>
+              <button class="btn-delete-mini" @click="deletePackage(pkg)">&times;</button>
             </div>
-            <div class="tc-row">
-              <span class="tc-label">Fitur</span>
+            <div class="tc-body">
+              <div class="tc-row">
+                <span class="tc-label">Harga</span>
+                <div class="tc-value plan">
+                  <span v-if="pkg.original_price" class="original-price">Rp {{ pkg.original_price.toLocaleString('id-ID') }}</span>
+                  <span>Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+                </div>
+              </div>
+              <ul class="pkg-features">
+                <li v-for="(feat, idx) in pkg.features" :key="idx">✅ {{ feat }}</li>
+              </ul>
             </div>
-            <ul class="pkg-features">
-              <li v-for="(feat, idx) in pkg.features" :key="idx">✅ {{ feat }}</li>
-            </ul>
+            <div class="tc-footer">
+              <button class="btn-edit" @click="openPackageModal(pkg)">Edit</button>
+            </div>
           </div>
-          <div class="tc-footer">
-            <button class="btn-edit" @click="openPackageModal(pkg)">Edit Harga/Fitur</button>
+        </div>
+
+        <h3 class="section-divider" style="margin-top: 40px;">💻 Paket Desktop Lokal</h3>
+        <div class="tenant-grid packages-grid">
+          <div v-for="pkg in packages.filter(p => p.slug.startsWith('local'))" :key="pkg.id" class="tenant-card package-card local">
+            <div class="tc-header">
+              <div class="tc-info">
+                <div class="tc-name">{{ pkg.name }}</div>
+                <div class="tc-slug">ID: {{ pkg.slug }}</div>
+              </div>
+              <button class="btn-delete-mini" @click="deletePackage(pkg)">&times;</button>
+            </div>
+            <div class="tc-body">
+              <div class="tc-row">
+                <span class="tc-label">Harga</span>
+                <div class="tc-value plan">
+                  <span v-if="pkg.original_price" class="original-price">Rp {{ pkg.original_price.toLocaleString('id-ID') }}</span>
+                  <span>Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+                </div>
+              </div>
+              <ul class="pkg-features">
+                <li v-for="(feat, idx) in pkg.features" :key="idx">✅ {{ feat }}</li>
+              </ul>
+            </div>
+            <div class="tc-footer">
+              <button class="btn-edit" @click="openPackageModal(pkg)">Edit</button>
+            </div>
+          </div>
+          <div v-if="packages.filter(p => p.slug.startsWith('local')).length === 0" class="empty-state">
+            <p>Belum ada paket lokal.</p>
           </div>
         </div>
       </div>
@@ -308,9 +344,12 @@
             <label>Paket Langganan</label>
             <select v-model="form.subscription_plan">
               <option value="trial">Trial (Default 7 Hari)</option>
-              <option value="monthly">Bulanan</option>
-              <option value="yearly">Tahunan</option>
-              <option value="lifetime">Seumur Hidup</option>
+              <option value="monthly">Cloud (Bulanan)</option>
+              <option value="yearly">Cloud (Tahunan)</option>
+              <option value="lifetime">Cloud (Seumur Hidup)</option>
+              <option value="local_monthly">Lokal (Bulanan)</option>
+              <option value="local_yearly">Lokal (Tahunan)</option>
+              <option value="local_lifetime">Lokal (Seumur Hidup)</option>
             </select>
           </div>
 
@@ -335,14 +374,17 @@
       </div>
     </div>
 
-    <!-- Modal: Edit Package -->
     <div v-if="showPackageModal" class="modal-overlay" @click.self="closePackageModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>Edit Harga & Paket: {{ packageForm.slug.toUpperCase() }}</h3>
+          <h3>{{ editingPackageId ? 'Edit Paket: ' + packageForm.slug.toUpperCase() : 'Buat Paket Baru' }}</h3>
           <button class="modal-close" @click="closePackageModal">&times;</button>
         </div>
         <div class="modal-body">
+          <div class="mf-group" v-if="!editingPackageId">
+            <label>Slug (ID Unik)</label>
+            <input v-model="packageForm.slug" placeholder="e.g. local_monthly" />
+          </div>
           <div class="mf-group">
             <label>Nama Tampilan Paket</label>
             <input v-model="packageForm.name" />
@@ -446,6 +488,7 @@ const saStats = ref<any>({
 const renewalStatusFilter = ref('pending')
 
 const packageForm = ref({
+  id: undefined,
   slug: '',
   name: '',
   price: 0,
@@ -590,9 +633,24 @@ const closeModal = () => {
 }
 
 // Package Modals Logic
+const openNewPackageModal = () => {
+  editingPackageId.value = null
+  packageForm.value = {
+    id: undefined,
+    slug: '',
+    name: '',
+    price: 0,
+    original_price: 0,
+    featuresStr: ''
+  }
+  packageFormError.value = ''
+  showPackageModal.value = true
+}
+
 const openPackageModal = (pkg: any) => {
   editingPackageId.value = pkg.id
   packageForm.value = {
+    id: pkg.id,
     slug: pkg.slug,
     name: pkg.name,
     price: pkg.price,
@@ -611,24 +669,43 @@ const closePackageModal = () => {
 const savePackageModal = async () => {
   packageFormError.value = ''
   if (!packageForm.value.name) { packageFormError.value = 'Nama paket wajib diisi'; return }
+  if (!editingPackageId.value && !packageForm.value.slug) { packageFormError.value = 'Slug wajib diisi'; return }
 
   savingPackage.value = true
   try {
     const features = packageForm.value.featuresStr.split(',').map(f => f.trim()).filter(f => f.length > 0)
-    await api.put(`/superadmin/packages/${editingPackageId.value}`, {
+    const payload = {
       name: packageForm.value.name,
+      slug: packageForm.value.slug,
       price: packageForm.value.price,
       original_price: packageForm.value.original_price || null,
       features: features
-    })
+    }
+
+    if (editingPackageId.value) {
+      await api.put(`/superadmin/packages/${editingPackageId.value}`, payload)
+    } else {
+      await api.post('/superadmin/packages', payload)
+    }
     
     closePackageModal()
-    showAlert('Harga paket berhasil disimpan!')
+    showAlert(editingPackageId.value ? 'Harga paket berhasil disimpan!' : 'Paket baru berhasil dibuat!')
     fetchPackages()
   } catch (e: any) {
     packageFormError.value = e.response?.data?.message || e.message
   } finally {
     savingPackage.value = false
+  }
+}
+
+const deletePackage = async (pkg: any) => {
+  if (!confirm(`Hapus paket "${pkg.name}"?`)) return
+  try {
+    await api.delete(`/superadmin/packages/${pkg.id}`)
+    showAlert('Paket dihapus')
+    fetchPackages()
+  } catch (e: any) {
+    showAlert('Gagal menghapus paket: ' + (e.response?.data?.message || e.message), 'error')
   }
 }
 
@@ -689,9 +766,12 @@ const statusLabel = (status: string) => {
 }
 
 const planLabel = (plan: string) => {
-  if (plan === 'monthly') return 'Bulanan'
-  if (plan === 'yearly') return 'Tahunan'
-  if (plan === 'lifetime') return 'Seumur Hidup'
+  if (plan === 'monthly') return 'Cloud (Bulanan)'
+  if (plan === 'yearly') return 'Cloud (Tahunan)'
+  if (plan === 'lifetime') return 'Cloud (Lifetime)'
+  if (plan === 'local_monthly') return 'Lokal (Bulanan)'
+  if (plan === 'local_yearly') return 'Lokal (Tahunan)'
+  if (plan === 'local_lifetime') return 'Lokal (Lifetime)'
   return 'Trial'
 }
 
@@ -1039,6 +1119,44 @@ const rejectRenewal = async (id: number) => {
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.section-divider {
+  margin: 24px 0 16px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+
+.package-card.cloud { border-top: 4px solid #0ea5e9; }
+.package-card.local { border-top: 4px solid #34d399; }
+
+.btn-delete-mini {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-delete-mini:hover {
+  background: #ef4444;
+  color: white;
 }
 
 .processing-info {
