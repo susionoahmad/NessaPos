@@ -95,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useAuthStore } from '../store/auth'
 import api from '../api'
 
@@ -120,7 +120,9 @@ const loadPackages = async () => {
   packageError.value = false
   try {
     const res = await api.get('/packages')
-    packages.value = Array.isArray(res.data) ? res.data : []
+    const allPackages = Array.isArray(res.data) ? res.data : []
+    // Tampilkan hanya paket cloud saja (slug tidak diawali dengan local_)
+    packages.value = allPackages.filter((pkg: any) => pkg.slug && !pkg.slug.startsWith('local_'))
   } catch(e) {
     console.error("Error load packages", e)
     packageError.value = true
@@ -185,27 +187,37 @@ const logout = async () => {
 
 let pollInterval: any = null
 
-onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    return
-  }
-
-  await loadPackages()
-  await authStore.refreshTenant()
-  
-  // Polling every 10 seconds if waiting
+const startPolling = () => {
+  if (pollInterval) clearInterval(pollInterval)
   pollInterval = setInterval(async () => {
     if (authStore.isAuthenticated && isExpired.value) {
       await authStore.refreshTenant()
     } else {
-      clearInterval(pollInterval)
+      stopPolling()
     }
   }, 10000)
-})
+}
 
-import { onUnmounted } from 'vue'
+const stopPolling = () => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+// Watch isExpired to load packages and start/stop polling dynamically
+watch(isExpired, async (newVal) => {
+  if (newVal) {
+    await loadPackages()
+    await authStore.refreshTenant()
+    startPolling()
+  } else {
+    stopPolling()
+  }
+}, { immediate: true })
+
 onUnmounted(() => {
-  if (pollInterval) clearInterval(pollInterval)
+  stopPolling()
 })
 </script>
 

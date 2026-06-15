@@ -1,0 +1,16 @@
+﻿=== BEFORE: All Packages ===
+1 | monthly              | is_active=1
+2 | yearly               | is_active=1
+3 | lifetime             | is_active=1
+4 | local_monthly        | is_active=1
+5 | local_yearly         | is_active=1
+6 | local_lifetime       | is_active=1
+
+=== FIXING: Force-activate all Cloud packages ===
+Updated: 3 rows
+
+=== AFTER: Cloud packages (what /packages returns) ===
+Count: 3
+1 | monthly              | Cloud (Bulanan) | Rp 69,000
+2 | yearly               | Cloud (Tahunan) | Rp 690,000
+3 | lifetime             | Cloud (Lifetime) | Rp 2,500,000

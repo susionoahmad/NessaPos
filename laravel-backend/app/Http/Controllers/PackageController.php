@@ -11,15 +11,13 @@ class PackageController extends Controller
     {
         $query = SubscriptionPackage::where('is_active', true);
 
-        // By default, only show Cloud packages for the web POS overlay.
-        // Pass ?type=all to include desktop/local packages (e.g. for landing page).
+        // By default, only show Cloud packages for the web POS renewal overlay.
+        // Pass ?type=all to get all packages including Desktop Local (for landing page).
         if ($request->query('type') !== 'all') {
-            $query->where(function ($q) {
-                $q->whereNotIn('slug', ['local_monthly', 'local_yearly', 'local_lifetime'])
-                  ->orWhere('slug', 'not like', 'local_%');
-            });
+            $query->where('slug', 'not like', 'local_%');
         }
 
         return response()->json($query->orderBy('price')->get());
     }
 }
+

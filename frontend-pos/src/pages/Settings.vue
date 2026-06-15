@@ -666,7 +666,9 @@ const packages = ref<any[]>([])
 const loadPackages = async () => {
   try {
     const res = await api.get('/packages')
-    packages.value = res.data
+    const allPackages = Array.isArray(res.data) ? res.data : []
+    // Tampilkan hanya paket cloud saja (slug tidak diawali dengan local_)
+    packages.value = allPackages.filter((pkg: any) => pkg.slug && !pkg.slug.startsWith('local_'))
   } catch(e) {
     console.error("Error load packages", e)
   }
