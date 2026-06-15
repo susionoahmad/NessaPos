@@ -17,7 +17,32 @@
         </div>
       </div>
 
-      <div class="plans-grid" v-if="!isWaiting">
+      <!-- Loading State -->
+      <div v-if="loadingPackages && !isWaiting" class="loading-state">
+        <div class="spinner"></div>
+        <p>Memuat paket langganan...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="packageError && !isWaiting" class="error-state">
+        <div class="error-icon">😔</div>
+        <p>Gagal memuat paket langganan.</p>
+        <p class="error-sub">Periksa koneksi internet Anda, atau hubungi Admin untuk perpanjangan manual.</p>
+        <div class="error-actions">
+          <button class="btn-retry" @click="loadPackages">🔄 Coba Lagi</button>
+          <a
+            v-if="tenant?.superadmin_phone"
+            :href="buildDirectWaLink()"
+            target="_blank"
+            class="btn-wa-direct"
+          >
+            💬 Hubungi Admin via WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <!-- Packages Grid -->
+      <div class="plans-grid" v-else-if="!isWaiting && packages.length > 0">
         <div 
           v-for="pkg in packages" 
           :key="pkg.slug"
@@ -29,6 +54,9 @@
           <div class="plan-header">
             <span class="plan-title">{{ pkg.name }}</span>
             <div class="price">
+              <span v-if="pkg.original_price && pkg.original_price > pkg.price" class="original-price">
+                Rp {{ (pkg.original_price / 1000).toLocaleString('id-ID') }}rb
+              </span>
               Rp {{ (pkg.price / 1000).toLocaleString('id-ID') }}rb
               <span v-if="pkg.duration_days === 30">/bln</span>
               <span v-else-if="pkg.duration_days === 365">/thn</span>
@@ -42,6 +70,21 @@
             {{ loading ? 'Sedang memproses...' : 'Pilih Paket & Konfirmasi WA' }}
           </button>
         </div>
+      </div>
+
+      <!-- No packages fallback -->
+      <div v-else-if="!isWaiting && !loadingPackages && packages.length === 0" class="error-state">
+        <div class="error-icon">📦</div>
+        <p>Belum ada paket aktif saat ini.</p>
+        <p class="error-sub">Hubungi Admin untuk informasi perpanjangan langganan.</p>
+        <a
+          v-if="tenant?.superadmin_phone"
+          :href="buildDirectWaLink()"
+          target="_blank"
+          class="btn-wa-direct"
+        >
+          💬 Hubungi Admin via WhatsApp
+        </a>
       </div>
 
       <div class="expiry-footer">
@@ -69,14 +112,35 @@ const isExpired = computed(() => {
 
 const packages = ref<any[]>([])
 const loading = ref(false)
+const loadingPackages = ref(false)
+const packageError = ref(false)
 
 const loadPackages = async () => {
+  loadingPackages.value = true
+  packageError.value = false
   try {
     const res = await api.get('/packages')
-    packages.value = res.data
+    packages.value = Array.isArray(res.data) ? res.data : []
   } catch(e) {
     console.error("Error load packages", e)
+    packageError.value = true
+    packages.value = []
+  } finally {
+    loadingPackages.value = false
   }
+}
+
+const buildDirectWaLink = () => {
+  const waNumber = tenant.value?.superadmin_phone
+  if (!waNumber) return '#'
+  const message = encodeURIComponent(
+    `Halo Admin,\n\n` +
+    `Saya ingin memperpanjang langganan NessaPOS.\n` +
+    `Nama Toko: ${tenant.value?.name || '-'}\n` +
+    `Store ID: ${tenant.value?.slug || '-'}\n\n` +
+    `Mohon bantuannya. Terima kasih!`
+  )
+  return `https://wa.me/${waNumber}?text=${message}`
 }
 
 const handleChoosePlan = async (pkg: any) => {
@@ -155,8 +219,8 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   padding: 20px;
-  overflow-y: auto; /* Enable scroll for long content */
-  align-items: flex-start; /* Better for scrolling than center */
+  overflow-y: auto;
+  align-items: flex-start;
 }
 
 .expiry-card {
@@ -204,6 +268,94 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 32px 20px;
+  margin-bottom: 24px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+}
+
+.error-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.error-state p {
+  color: #334155;
+  font-weight: 600;
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.error-sub {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  margin-bottom: 20px !important;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-retry {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #334155;
+  font-size: 14px;
+}
+
+.btn-retry:hover {
+  background: #e2e8f0;
+}
+
+.btn-wa-direct {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #25D366;
+  color: white;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.btn-wa-direct:hover {
+  background: #1ebe5c;
+}
+
 .plans-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -232,6 +384,14 @@ onUnmounted(() => {
 .plan-header { margin-bottom: 20px; }
 .plan-title { font-weight: 800; font-size: 18px; color: #1e293b; }
 .price { font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 4px; }
+.original-price {
+  font-size: 14px;
+  font-weight: 400;
+  color: #94a3b8;
+  text-decoration: line-through;
+  display: block;
+  margin-bottom: 2px;
+}
 
 .plan-features {
   list-style: none;
@@ -255,7 +415,13 @@ onUnmounted(() => {
   border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.2s;
 }
+
+.btn-plan:hover:not(:disabled) {
+  background: #0284c7;
+}
+
 .btn-plan:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -282,7 +448,7 @@ onUnmounted(() => {
   color: white;
 }
 
-/* Plan Styles (copied from Settings if needed) */
+/* Plan Styles */
 .popular-badge {
   position: absolute;
   top: -12px;
@@ -293,5 +459,10 @@ onUnmounted(() => {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
+}
+
+.plan-card.highlight {
+  border-color: #0ea5e9;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
 }
 </style>

@@ -16,6 +16,7 @@ class SubscriptionPackageSeeder extends Seeder
                 'price' => 69000,
                 'original_price' => 99000,
                 'duration_days' => 30,
+                'is_active' => true,
                 'features' => [
                     'Transaksi Tanpa Batas',
                     'Laporan Lengkap',
@@ -36,6 +37,7 @@ class SubscriptionPackageSeeder extends Seeder
                 'price' => 690000,
                 'original_price' => 990000,
                 'duration_days' => 365,
+                'is_active' => true,
                 'features' => [
                     'Semua Fitur Pro',
                     'Prioritas Support',
@@ -57,6 +59,7 @@ class SubscriptionPackageSeeder extends Seeder
                 'price' => 2500000,
                 'original_price' => 2900000,
                 'duration_days' => null,
+                'is_active' => true,
                 'features' => [
                     'Miliki Selamanya',
                     'Tanpa Biaya Bulanan',

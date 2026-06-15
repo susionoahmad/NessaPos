@@ -66,7 +66,7 @@ async function getHomePage() {
 
 async function getPackages() {
   try {
-    const res = await fetchWithTimeout(apiUrl('/packages'), {
+    const res = await fetchWithTimeout(apiUrl('/packages?type=all'), {
       cache: 'no-store',
       timeout: 3000
     })
