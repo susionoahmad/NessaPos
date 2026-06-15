@@ -17,7 +17,23 @@ class PackageController extends Controller
             $query->where('slug', 'not like', 'local_%');
         }
 
-        return response()->json($query->orderBy('price')->get());
+        $packages = $query->get();
+
+        // Urutan custom: Paket Local dulu (Bulanan, Tahunan, Lifetime), baru paket Cloud
+        $order = [
+            'local_monthly'  => 1,
+            'local_yearly'   => 2,
+            'local_lifetime' => 3,
+            'monthly'        => 4,
+            'yearly'         => 5,
+            'lifetime'       => 6,
+        ];
+
+        $sorted = $packages->sortBy(function ($pkg) use ($order) {
+            return $order[$pkg->slug] ?? 99;
+        })->values();
+
+        return response()->json($sorted);
     }
 }
 
