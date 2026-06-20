@@ -133,8 +133,11 @@ const loadPackages = async () => {
 }
 
 const buildDirectWaLink = () => {
-  const waNumber = tenant.value?.superadmin_phone
+  let waNumber = tenant.value?.superadmin_phone
   if (!waNumber) return '#'
+  // Remove non-digit characters (e.g. +, spaces, dashes)
+  waNumber = waNumber.replace(/\D/g, '')
+  
   const message = encodeURIComponent(
     `Halo Admin,\n\n` +
     `Saya ingin memperpanjang langganan NessaPOS.\n` +
@@ -155,11 +158,13 @@ const handleChoosePlan = async (pkg: any) => {
       payment_method: 'WhatsApp' 
     })
     
-    const waNumber = tenant.value?.superadmin_phone
+    let waNumber = tenant.value?.superadmin_phone
     if (!waNumber) {
       alert("Nomor WhatsApp Super Admin belum dikonfigurasi. Isi SUPERADMIN_PHONE di ENV backend.")
       return
     }
+    // Remove non-digit characters
+    waNumber = waNumber.replace(/\D/g, '')
 
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +

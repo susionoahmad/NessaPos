@@ -813,7 +813,9 @@ const choosePlan = async (pkg: any) => {
     })
     
     // Construct WA message
-    const waNumber = tenant.value?.superadmin_phone || '6281392156513'
+    let waNumber = tenant.value?.superadmin_phone || '6281392156513'
+    // Remove non-digit characters
+    waNumber = waNumber.replace(/\D/g, '')
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +
       `Saya ingin konfirmasi pembayaran untuk perpanjangan paket.\n` +
@@ -1079,7 +1081,7 @@ const closeModal = () => {
   height: 24px;
   border-radius: 99px;
   background: #ef4444;
-  color: #white;
+  color: white;
   border: 2px solid #ffffff;
   display: flex;
   align-items: center;
