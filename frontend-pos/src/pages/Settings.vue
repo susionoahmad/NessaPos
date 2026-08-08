@@ -805,6 +805,9 @@ const choosePlan = async (pkg: any) => {
   if (tenant.value?.subscription_plan === pkg.slug) return
   if (!confirm(`Apakah Anda ingin berlangganan paket ${pkg.name}?`)) return
   
+  // Pre-open tab synchronously within user click event so browser popup blocker allows it
+  const waWindow = window.open('about:blank', '_blank')
+
   loading.value = true
   try {
     const res = await api.post('/subscription/renew', { 
@@ -819,18 +822,24 @@ const choosePlan = async (pkg: any) => {
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +
       `Saya ingin konfirmasi pembayaran untuk perpanjangan paket.\n` +
-      `Store ID: ${tenant.value.slug}\n` +
-      `Nama Toko: ${tenant.value.name}\n` +
+      `Store ID: ${tenant.value?.slug || '-'}\n` +
+      `Nama Toko: ${tenant.value?.name || '-'}\n` +
       `Paket: ${pkg.name}\n` +
-      `Harga: Rp ${pkg.price.toLocaleString('id-ID')}\n\n` +
+      `Harga: Rp ${pkg.price?.toLocaleString('id-ID') || '0'}\n\n` +
       `Mohon bantuannya untuk aktivasi. Terima kasih!`
     )
     
-    window.open(`https://wa.me/${waNumber}?text=${message}`, '_blank')
+    const waUrl = `https://wa.me/${waNumber}?text=${message}`
+    if (waWindow && !waWindow.closed) {
+      waWindow.location.href = waUrl
+    } else {
+      window.location.href = waUrl
+    }
     
     alert("Permintaan berhasil diajukan. Silakan kirim pesan WhatsApp tersebut untuk konfirmasi pembayaran.")
     await loadTenantInfo()
   } catch (e: any) {
+    if (waWindow && !waWindow.closed) waWindow.close()
     alert("Gagal mengajukan paket: " + (e.response?.data?.message || e.message))
   } finally {
     loading.value = false

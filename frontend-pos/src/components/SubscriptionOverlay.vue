@@ -7,6 +7,15 @@
         <p v-if="isWaiting">
           Permintaan aktivasi paket <b>{{ latestRequest?.package?.name }}</b> sedang diproses oleh Super Admin.
           <br/><small>Halaman ini akan otomatis terbuka jika sudah disetujui.</small>
+          <br/><br/>
+          <a
+            :href="buildDirectWaLink(latestRequest?.package)"
+            target="_blank"
+            class="btn-wa-direct"
+            style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; padding: 10px 18px; background-color: #25D366; color: white; border-radius: 8px; font-weight: 600; text-decoration: none;"
+          >
+            💬 Konfirmasi via WhatsApp
+          </a>
         </p>
         <p v-else>
           Masa aktif toko <b>{{ tenant?.name }}</b> telah berakhir. Silakan pilih paket langganan untuk melanjutkan penggunaan sistem.
@@ -132,18 +141,20 @@ const loadPackages = async () => {
   }
 }
 
-const buildDirectWaLink = () => {
-  let waNumber = tenant.value?.superadmin_phone
-  if (!waNumber) return '#'
+const buildDirectWaLink = (pkg?: any) => {
+  let waNumber = tenant.value?.superadmin_phone || '6281392156513'
   // Remove non-digit characters (e.g. +, spaces, dashes)
   waNumber = waNumber.replace(/\D/g, '')
   
+  const pkgName = pkg?.name || latestRequest.value?.package?.name || '-'
+  const priceText = pkg?.price ? `\nHarga: Rp ${pkg.price.toLocaleString('id-ID')}` : ''
   const message = encodeURIComponent(
-    `Halo Admin,\n\n` +
-    `Saya ingin memperpanjang langganan NessaPOS.\n` +
+    `Halo Super Admin,\n\n` +
+    `Saya ingin konfirmasi pembayaran untuk perpanjangan paket.\n` +
+    `Store ID: ${tenant.value?.slug || '-'}\n` +
     `Nama Toko: ${tenant.value?.name || '-'}\n` +
-    `Store ID: ${tenant.value?.slug || '-'}\n\n` +
-    `Mohon bantuannya. Terima kasih!`
+    `Paket: ${pkgName}${priceText}\n\n` +
+    `Mohon bantuannya untuk aktivasi. Terima kasih!`
   )
   return `https://wa.me/${waNumber}?text=${message}`
 }
@@ -151,6 +162,9 @@ const buildDirectWaLink = () => {
 const handleChoosePlan = async (pkg: any) => {
   if (!confirm(`Apakah Anda ingin berlangganan paket ${pkg.name}?`)) return
   
+  // Pre-open tab synchronously within user click event so browser popup blocker allows it
+  const waWindow = window.open('about:blank', '_blank')
+
   loading.value = true
   try {
     await api.post('/subscription/renew', { 
@@ -158,27 +172,30 @@ const handleChoosePlan = async (pkg: any) => {
       payment_method: 'WhatsApp' 
     })
     
-    let waNumber = tenant.value?.superadmin_phone
-    if (!waNumber) {
-      alert("Nomor WhatsApp Super Admin belum dikonfigurasi. Isi SUPERADMIN_PHONE di ENV backend.")
-      return
-    }
-    // Remove non-digit characters
+    let waNumber = tenant.value?.superadmin_phone || '6281392156513'
     waNumber = waNumber.replace(/\D/g, '')
 
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +
       `Saya ingin konfirmasi pembayaran untuk perpanjangan paket.\n` +
-      `Store ID: ${tenant.value.slug}\n` +
-      `Nama Toko: ${tenant.value.name}\n` +
+      `Store ID: ${tenant.value?.slug || '-'}\n` +
+      `Nama Toko: ${tenant.value?.name || '-'}\n` +
       `Paket: ${pkg.name}\n` +
-      `Harga: Rp ${pkg.price.toLocaleString('id-ID')}\n\n` +
+      `Harga: Rp ${pkg.price?.toLocaleString('id-ID') || '0'}\n\n` +
       `Mohon bantuannya untuk aktivasi. Terima kasih!`
     )
     
-    window.open(`https://wa.me/${waNumber}?text=${message}`, '_blank')
+    const waUrl = `https://wa.me/${waNumber}?text=${message}`
+    if (waWindow && !waWindow.closed) {
+      waWindow.location.href = waUrl
+    } else {
+      window.location.href = waUrl
+    }
+    
     alert("Permintaan diajukan. Silakan konfirmasi melalui WhatsApp.")
+    await authStore.refreshTenant()
   } catch (e: any) {
+    if (waWindow && !waWindow.closed) waWindow.close()
     alert("Gagal: " + (e.response?.data?.message || e.message))
   } finally {
     loading.value = false
