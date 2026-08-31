@@ -8,9 +8,23 @@ export const metadata: Metadata = {
   description: 'Sistem POS dan penjualan online untuk bisnis Anda',
 }
 
+function formatWaNumber(phone?: string | null): string {
+  let cleaned = (phone || '').replace(/\D/g, '')
+  if (!cleaned) return DEFAULT_SUPERADMIN_PHONE
+  if (cleaned.startsWith('68')) {
+    cleaned = '628' + cleaned.slice(2)
+  } else if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1)
+  } else if (cleaned.startsWith('8')) {
+    cleaned = '62' + cleaned
+  } else if (!cleaned.startsWith('62')) {
+    cleaned = '62' + cleaned
+  }
+  return cleaned
+}
+
 function getWhatsAppLink() {
-  const phone = (process.env.NEXT_PUBLIC_SUPERADMIN_PHONE || DEFAULT_SUPERADMIN_PHONE)
-    .replace(/[^\d]/g, '')
+  const phone = formatWaNumber(process.env.NEXT_PUBLIC_SUPERADMIN_PHONE || DEFAULT_SUPERADMIN_PHONE)
   const message = encodeURIComponent(
     'Halo NessaPOS, saya ingin konsultasi dan bertanya tentang aplikasi kasir.'
   )

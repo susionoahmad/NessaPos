@@ -107,6 +107,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useAuthStore } from '../store/auth'
 import api from '../api'
+import { formatIndonesianWaNumber } from '../utils/format'
 
 const authStore = useAuthStore()
 const tenant = computed(() => authStore.tenant)
@@ -142,9 +143,7 @@ const loadPackages = async () => {
 }
 
 const buildDirectWaLink = (pkg?: any) => {
-  let waNumber = tenant.value?.superadmin_phone || '6281392156513'
-  // Remove non-digit characters (e.g. +, spaces, dashes)
-  waNumber = waNumber.replace(/\D/g, '')
+  const waNumber = formatIndonesianWaNumber(tenant.value?.superadmin_phone)
   
   const pkgName = pkg?.name || latestRequest.value?.package?.name || '-'
   const priceText = pkg?.price ? `\nHarga: Rp ${pkg.price.toLocaleString('id-ID')}` : ''
@@ -172,8 +171,7 @@ const handleChoosePlan = async (pkg: any) => {
       payment_method: 'WhatsApp' 
     })
     
-    let waNumber = tenant.value?.superadmin_phone || '6281392156513'
-    waNumber = waNumber.replace(/\D/g, '')
+    const waNumber = formatIndonesianWaNumber(tenant.value?.superadmin_phone)
 
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +

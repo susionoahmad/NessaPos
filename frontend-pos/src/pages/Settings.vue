@@ -446,6 +446,7 @@ import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useAuthStore } from '../store/auth'
 import { TestPrint } from '../../wailsjs/go/api/API'
+import { formatIndonesianWaNumber } from '../utils/format'
 
 const authStore = useAuthStore()
 const auth = computed(() => authStore.user || { role: '' })
@@ -816,9 +817,7 @@ const choosePlan = async (pkg: any) => {
     })
     
     // Construct WA message
-    let waNumber = tenant.value?.superadmin_phone || '6281392156513'
-    // Remove non-digit characters
-    waNumber = waNumber.replace(/\D/g, '')
+    const waNumber = formatIndonesianWaNumber(tenant.value?.superadmin_phone)
     const message = encodeURIComponent(
       `Halo Super Admin,\n\n` +
       `Saya ingin konfirmasi pembayaran untuk perpanjangan paket.\n` +
