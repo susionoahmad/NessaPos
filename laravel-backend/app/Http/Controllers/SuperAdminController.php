@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Product;
+use App\Models\StockMutation;
 use App\Models\SubscriptionPackage;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -20,6 +24,11 @@ class SuperAdminController extends Controller
             ->with([
                 'users' => function ($q) {
                     $q->withoutGlobalScopes()->select('id', 'tenant_id', 'username', 'role');
+                }
+            ])
+            ->withCount([
+                'products as product_count' => function ($q) {
+                    $q->withoutGlobalScopes();
                 }
             ])
             ->orderByDesc('created_at')
@@ -37,6 +46,7 @@ class SuperAdminController extends Controller
                     'trial_ends_at' => $tenant->trial_ends_at?->format('Y-m-d H:i:s'),
                     'subscription_status' => $tenant->subscriptionStatus(),
                     'user_count' => $tenant->users->count(),
+                    'product_count' => $tenant->product_count ?? 0,
                     'created_at' => $tenant->created_at?->format('Y-m-d'),
                 ];
             });
@@ -265,5 +275,230 @@ class SuperAdminController extends Controller
                 })->values()
             ]
         ]);
+    }
+
+    /**
+     * Get all products belonging to a specific tenant.
+     */
+    public function tenantProducts($id)
+    {
+        $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
+
+        $products = Product::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json([
+            'tenant' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'slug' => $tenant->slug,
+            ],
+            'products' => $products,
+        ]);
+    }
+
+    /**
+     * Create a new product for a specific tenant.
+     */
+    public function storeTenantProduct(Request $request, $id)
+    {
+        $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
+
+        $validated = $request->validate([
+            'name'            => 'required|string',
+            'barcode'         => 'nullable|string',
+            'cost_price'      => 'numeric',
+            'selling_price'   => 'numeric',
+            'shelf_stock'     => 'integer',
+            'warehouse_stock' => 'integer',
+        ]);
+
+        $product = Product::withoutGlobalScopes()->create([
+            'tenant_id'       => $tenant->id,
+            'name'            => $validated['name'],
+            'barcode'         => $validated['barcode'] ?: null,
+            'cost_price'      => $validated['cost_price'] ?? 0,
+            'selling_price'   => $validated['selling_price'] ?? 0,
+            'shelf_stock'     => $validated['shelf_stock'] ?? 0,
+            'warehouse_stock' => $validated['warehouse_stock'] ?? 0,
+        ]);
+
+        if ($product->shelf_stock > 0 || $product->warehouse_stock > 0) {
+            StockMutation::withoutGlobalScopes()->create([
+                'tenant_id'     => $tenant->id,
+                'product_id'    => $product->id,
+                'type'          => 'ADJUSTMENT',
+                'from_location' => 'INITIAL',
+                'to_location'   => $product->shelf_stock > 0 ? 'SHELF' : 'WAREHOUSE',
+                'quantity'      => $product->shelf_stock + $product->warehouse_stock,
+                'reference'     => 'SuperAdmin Initial Stock',
+                'created_by'    => Auth::id(),
+            ]);
+        }
+
+        return response()->json($product, 201);
+    }
+
+    /**
+     * Update a product for a specific tenant.
+     */
+    public function updateTenantProduct(Request $request, $id, $productId)
+    {
+        $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
+
+        $product = Product::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->findOrFail($productId);
+
+        $validated = $request->validate([
+            'name'            => 'required|string',
+            'barcode'         => 'nullable|string',
+            'cost_price'      => 'numeric',
+            'selling_price'   => 'numeric',
+            'shelf_stock'     => 'integer',
+            'warehouse_stock' => 'integer',
+        ]);
+
+        $oldShelf = (int) $product->shelf_stock;
+        $oldWh    = (int) $product->warehouse_stock;
+
+        $product->update([
+            'name'            => $validated['name'],
+            'barcode'         => $validated['barcode'] ?: null,
+            'cost_price'      => $validated['cost_price'] ?? 0,
+            'selling_price'   => $validated['selling_price'] ?? 0,
+            'shelf_stock'     => $validated['shelf_stock'] ?? 0,
+            'warehouse_stock' => $validated['warehouse_stock'] ?? 0,
+        ]);
+
+        if ($oldShelf !== (int) $product->shelf_stock) {
+            StockMutation::withoutGlobalScopes()->create([
+                'tenant_id'     => $tenant->id,
+                'product_id'    => $product->id,
+                'type'          => 'ADJUSTMENT',
+                'from_location' => $oldShelf < $product->shelf_stock ? 'EXTERNAL' : 'SHELF',
+                'to_location'   => $oldShelf < $product->shelf_stock ? 'SHELF' : 'ADJUSTMENT',
+                'quantity'      => abs($product->shelf_stock - $oldShelf),
+                'reference'     => 'SuperAdmin Adjustment (Shelf)',
+                'created_by'    => Auth::id(),
+            ]);
+        }
+
+        if ($oldWh !== (int) $product->warehouse_stock) {
+            StockMutation::withoutGlobalScopes()->create([
+                'tenant_id'     => $tenant->id,
+                'product_id'    => $product->id,
+                'type'          => 'ADJUSTMENT',
+                'from_location' => $oldWh < $product->warehouse_stock ? 'EXTERNAL' : 'WAREHOUSE',
+                'to_location'   => $oldWh < $product->warehouse_stock ? 'WAREHOUSE' : 'ADJUSTMENT',
+                'quantity'      => abs($product->warehouse_stock - $oldWh),
+                'reference'     => 'SuperAdmin Adjustment (Warehouse)',
+                'created_by'    => Auth::id(),
+            ]);
+        }
+
+        return response()->json($product);
+    }
+
+    /**
+     * Bulk update products for a specific tenant from UI table edits.
+     */
+    public function bulkUpdateTenantProducts(Request $request, $id)
+    {
+        $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
+
+        $validated = $request->validate([
+            'products'                   => 'required|array',
+            'products.*.id'              => 'required|integer',
+            'products.*.name'            => 'required|string',
+            'products.*.barcode'         => 'nullable|string',
+            'products.*.cost_price'      => 'numeric',
+            'products.*.selling_price'   => 'numeric',
+            'products.*.shelf_stock'     => 'integer',
+            'products.*.warehouse_stock' => 'integer',
+        ]);
+
+        $updatedCount = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['products'] as $item) {
+                $product = Product::withoutGlobalScopes()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('id', $item['id'])
+                    ->first();
+
+                if (!$product) continue;
+
+                $oldShelf = (int) $product->shelf_stock;
+                $oldWh    = (int) $product->warehouse_stock;
+
+                $product->update([
+                    'name'            => $item['name'],
+                    'barcode'         => !empty($item['barcode']) ? $item['barcode'] : null,
+                    'cost_price'      => $item['cost_price'] ?? 0,
+                    'selling_price'   => $item['selling_price'] ?? 0,
+                    'shelf_stock'     => $item['shelf_stock'] ?? 0,
+                    'warehouse_stock' => $item['warehouse_stock'] ?? 0,
+                ]);
+
+                if ($oldShelf !== (int) $product->shelf_stock) {
+                    StockMutation::withoutGlobalScopes()->create([
+                        'tenant_id'     => $tenant->id,
+                        'product_id'    => $product->id,
+                        'type'          => 'ADJUSTMENT',
+                        'from_location' => $oldShelf < $product->shelf_stock ? 'EXTERNAL' : 'SHELF',
+                        'to_location'   => $oldShelf < $product->shelf_stock ? 'SHELF' : 'ADJUSTMENT',
+                        'quantity'      => abs($product->shelf_stock - $oldShelf),
+                        'reference'     => 'SuperAdmin Bulk Edit (Shelf)',
+                        'created_by'    => Auth::id(),
+                    ]);
+                }
+
+                if ($oldWh !== (int) $product->warehouse_stock) {
+                    StockMutation::withoutGlobalScopes()->create([
+                        'tenant_id'     => $tenant->id,
+                        'product_id'    => $product->id,
+                        'type'          => 'ADJUSTMENT',
+                        'from_location' => $oldWh < $product->warehouse_stock ? 'EXTERNAL' : 'WAREHOUSE',
+                        'to_location'   => $oldWh < $product->warehouse_stock ? 'WAREHOUSE' : 'ADJUSTMENT',
+                        'quantity'      => abs($product->warehouse_stock - $oldWh),
+                        'reference'     => 'SuperAdmin Bulk Edit (Warehouse)',
+                        'created_by'    => Auth::id(),
+                    ]);
+                }
+
+                $updatedCount++;
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Gagal menyimpan perubahan massal: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => "{$updatedCount} produk berhasil diperbarui.",
+            'updated' => $updatedCount,
+        ]);
+    }
+
+    /**
+     * Delete a product for a specific tenant.
+     */
+    public function destroyTenantProduct($id, $productId)
+    {
+        $tenant = Tenant::withoutGlobalScopes()->findOrFail($id);
+
+        $product = Product::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->findOrFail($productId);
+
+        $product->delete();
+
+        return response()->json(['message' => 'Produk dihapus']);
     }
 }

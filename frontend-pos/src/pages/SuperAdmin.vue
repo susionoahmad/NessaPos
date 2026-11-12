@@ -24,6 +24,7 @@
     <!-- Tabs -->
     <div class="sa-tabs">
       <button :class="{ active: activeTab === 'tenants' }" @click="activeTab = 'tenants'">Manajemen Toko</button>
+      <button :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">📦 Produk Tenant</button>
       <button :class="{ active: activeTab === 'packages' }" @click="activeTab = 'packages'">Harga & Rekomendasi</button>
       <button :class="{ active: activeTab === 'renewals' }" @click="activeTab = 'renewals'">
         Persetujuan Paket
@@ -79,6 +80,10 @@
               <span class="tc-value">{{ tenant.user_count }} akun</span>
             </div>
             <div class="tc-row">
+              <span class="tc-label">Total Produk</span>
+              <span class="tc-value">{{ tenant.product_count ?? 0 }} produk</span>
+            </div>
+            <div class="tc-row">
               <span class="tc-label">Bergabung</span>
               <span class="tc-value">{{ formatDate(tenant.created_at) }}</span>
             </div>
@@ -86,6 +91,9 @@
 
           <!-- Actions -->
           <div class="tc-footer">
+            <button class="btn-products" @click="openTenantProducts(tenant.id)" title="Kelola, Download & Upload Produk">
+              📦 Produk
+            </button>
             <button class="btn-edit" @click="openEditModal(tenant)">Edit</button>
             <button
               :class="['btn-toggle', tenant.is_active ? 'deactivate' : 'activate']"
@@ -102,6 +110,15 @@
           <button class="btn-new-tenant" @click="openNewModal">+ Tambah Toko Pertama</button>
         </div>
       </div>
+    </div>
+
+    <!-- Tenant Products Management -->
+    <div class="sa-content" v-else-if="activeTab === 'products'">
+      <SuperAdminTenantProducts
+        :tenants="tenants"
+        :initialTenantId="selectedProductTenantId"
+        @refresh-tenants="loadTenants"
+      />
     </div>
 
     <div class="sa-content" v-else-if="activeTab === 'packages'">
@@ -450,9 +467,16 @@ import { ref, onMounted } from 'vue'
 import api from '../api'
 import SuperAdminCmsPanel from '../components/SuperAdminCmsPanel.vue'
 import SuperAdminDesktopLicenses from '../components/SuperAdminDesktopLicenses.vue'
+import SuperAdminTenantProducts from '../components/SuperAdminTenantProducts.vue'
 
 const activeTab = ref('tenants')
+const selectedProductTenantId = ref<number | null>(null)
 const tenants = ref<any[]>([])
+
+const openTenantProducts = (tenantId: number) => {
+  selectedProductTenantId.value = tenantId
+  activeTab.value = 'products'
+}
 const loading = ref(true)
 const saving = ref(false)
 const showModal = ref(false)
@@ -1008,7 +1032,7 @@ const rejectRenewal = async (id: number) => {
   gap: 8px;
   padding: 12px 20px 18px;
 }
-.btn-edit, .btn-toggle {
+.btn-products, .btn-edit, .btn-toggle {
   flex: 1;
   padding: 9px;
   border: none;
@@ -1018,6 +1042,8 @@ const rejectRenewal = async (id: number) => {
   cursor: pointer;
   transition: all 0.2s;
 }
+.btn-products { background: rgba(14, 165, 233, 0.18); color: #38bdf8; }
+.btn-products:hover { background: rgba(14, 165, 233, 0.28); }
 .btn-edit { background: rgba(255,255,255,0.08); color: #e2e8f0; }
 .btn-edit:hover { background: rgba(255,255,255,0.15); }
 .btn-toggle.deactivate { background: rgba(239,68,68,0.15); color: #fca5a5; }

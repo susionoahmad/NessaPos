@@ -14,9 +14,25 @@ class ProductImportController extends Controller
     /**
      * POST /products/import
      * Accepts .csv or .xlsx file
-     * Columns: barcode, nama_barang, harga_beli_modal, harga_jual, stok_rak, stok_gudang
+     * Columns: id (optional), barcode, nama_barang, harga_beli_modal, harga_jual, stok_rak, stok_gudang
      */
     public function import(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        return $this->processImport($request, (int) $tenantId);
+    }
+
+    /**
+     * POST /superadmin/tenants/{id}/products/import
+     * Bulk import/update products for a specific tenant by SuperAdmin
+     */
+    public function importForTenant(Request $request, $id)
+    {
+        $tenant = \App\Models\Tenant::withoutGlobalScopes()->findOrFail($id);
+        return $this->processImport($request, (int) $tenant->id);
+    }
+
+    private function processImport(Request $request, int $tenantId)
     {
         $request->validate([
             'file' => 'required|file|mimes:csv,xlsx,xls,txt|max:10240',
@@ -41,8 +57,9 @@ class ProductImportController extends Controller
             return response()->json(['message' => 'File kosong atau format kolom tidak sesuai.'], 422);
         }
 
-        $tenantId = Auth::user()->tenant_id;
         $imported = 0;
+        $created  = 0;
+        $updated  = 0;
         $skipped  = 0;
         $errors   = [];
 
@@ -57,6 +74,8 @@ class ProductImportController extends Controller
                     continue;
                 }
 
+                $rawId          = trim($row['id'] ?? $row['id_produk'] ?? '');
+                $productId      = is_numeric($rawId) ? (int) $rawId : null;
                 $rawBarcode     = trim($row['barcode'] ?? '');
                 $barcode        = is_numeric($rawBarcode) ? sprintf("%.0f", (float)$rawBarcode) : $rawBarcode;
                 $costPrice      = $this->toFloat($row['harga_beli_modal'] ?? $row['cost_price'] ?? 0);
@@ -64,32 +83,58 @@ class ProductImportController extends Controller
                 $shelfStock     = (int) $this->toFloat($row['stok_rak'] ?? $row['shelf_stock'] ?? 0);
                 $warehouseStock = (int) $this->toFloat($row['stok_gudang'] ?? $row['warehouse_stock'] ?? 0);
 
-                // Upsert: jika barcode sama & tidak kosong → update, else create
+                // Upsert per tenant:
+                // 1. Jika ada kolom id dan cocok di tenant ini -> update
+                // 2. Else jika barcode tidak kosong dan cocok di tenant ini -> update
+                // 3. Else jika barcode kosong dan nama_barang sama persis di tenant ini -> update
+                // 4. Selain itu -> buat record baru
                 $product = null;
-                if ($barcode !== '') {
-                    $product = Product::where('barcode', $barcode)
+                if ($productId) {
+                    $product = Product::withoutGlobalScopes()
+                        ->where('tenant_id', $tenantId)
+                        ->where('id', $productId)
+                        ->first();
+                }
+
+                if (!$product && $barcode !== '') {
+                    $product = Product::withoutGlobalScopes()
+                        ->where('tenant_id', $tenantId)
+                        ->where('barcode', $barcode)
+                        ->first();
+                }
+
+                if (!$product && $barcode === '') {
+                    $product = Product::withoutGlobalScopes()
+                        ->where('tenant_id', $tenantId)
+                        ->where('name', $name)
                         ->first();
                 }
 
                 if ($product) {
                     // Update existing product
-                    $oldShelf = $product->shelf_stock;
-                    $oldWh    = $product->warehouse_stock;
+                    $oldShelf = (int) $product->shelf_stock;
+                    $oldWh    = (int) $product->warehouse_stock;
 
-                    $product->update([
+                    $updateData = [
                         'name'            => $name,
                         'cost_price'      => $costPrice,
                         'selling_price'   => $sellingPrice,
                         'shelf_stock'     => $shelfStock,
                         'warehouse_stock' => $warehouseStock,
-                    ]);
+                    ];
+                    if ($barcode !== '' || array_key_exists('barcode', $row)) {
+                        $updateData['barcode'] = $barcode ?: null;
+                    }
+
+                    $product->update($updateData);
 
                     // Record mutations if stock changed
-                    $this->recordMutationIfChanged($product->id, $oldShelf, $shelfStock, 'SHELF');
-                    $this->recordMutationIfChanged($product->id, $oldWh, $warehouseStock, 'WAREHOUSE');
+                    $this->recordMutationIfChanged($tenantId, $product->id, $oldShelf, $shelfStock, 'SHELF');
+                    $this->recordMutationIfChanged($tenantId, $product->id, $oldWh, $warehouseStock, 'WAREHOUSE');
+                    $updated++;
                 } else {
                     // Create new product
-                    $product = Product::create([
+                    $product = Product::withoutGlobalScopes()->create([
                         'tenant_id'       => $tenantId,
                         'name'            => $name,
                         'barcode'         => $barcode ?: null,
@@ -100,7 +145,8 @@ class ProductImportController extends Controller
                     ]);
 
                     if ($shelfStock > 0 || $warehouseStock > 0) {
-                        StockMutation::create([
+                        StockMutation::withoutGlobalScopes()->create([
+                            'tenant_id'     => $tenantId,
                             'product_id'    => $product->id,
                             'type'          => 'ADJUSTMENT',
                             'from_location' => 'INITIAL',
@@ -110,6 +156,7 @@ class ProductImportController extends Controller
                             'created_by'    => Auth::id(),
                         ]);
                     }
+                    $created++;
                 }
 
                 $imported++;
@@ -125,8 +172,10 @@ class ProductImportController extends Controller
         }
 
         return response()->json([
-            'message'  => "Import selesai. {$imported} produk berhasil, {$skipped} dilewati.",
+            'message'  => "Import selesai. {$imported} produk diproses ({$updated} diperbarui, {$created} baru), {$skipped} dilewati.",
             'imported' => $imported,
+            'updated'  => $updated,
+            'created'  => $created,
             'skipped'  => $skipped,
             'errors'   => $errors,
         ]);
@@ -166,11 +215,12 @@ class ProductImportController extends Controller
         return (float) preg_replace('/[^\d.]/', '', $val);
     }
 
-    private function recordMutationIfChanged(int $productId, int $old, int $new, string $location): void
+    private function recordMutationIfChanged(int $tenantId, int $productId, int $old, int $new, string $location): void
     {
         if ($old === $new) return;
 
-        StockMutation::create([
+        StockMutation::withoutGlobalScopes()->create([
+            'tenant_id'     => $tenantId,
             'product_id'    => $productId,
             'type'          => 'ADJUSTMENT',
             'from_location' => $old < $new ? 'EXTERNAL' : $location,

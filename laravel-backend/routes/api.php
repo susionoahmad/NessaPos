@@ -91,6 +91,14 @@ Route::middleware(['auth:sanctum', 'subscription'])->group(function () {
         Route::put('/tenants/{id}/subscription', [SuperAdminController::class, 'updateSubscription']);
         Route::post('/tenants/{id}/toggle', [SuperAdminController::class, 'toggleActive']);
         Route::delete('/tenants/{id}', [SuperAdminController::class, 'destroy']);
+
+        // Tenant Products Management (Fetch, Edit, Bulk Update, Import/Upload)
+        Route::get('/tenants/{id}/products', [SuperAdminController::class, 'tenantProducts']);
+        Route::post('/tenants/{id}/products', [SuperAdminController::class, 'storeTenantProduct']);
+        Route::post('/tenants/{id}/products/bulk-update', [SuperAdminController::class, 'bulkUpdateTenantProducts']);
+        Route::post('/tenants/{id}/products/import', [ProductImportController::class, 'importForTenant']);
+        Route::put('/tenants/{id}/products/{productId}', [SuperAdminController::class, 'updateTenantProduct']);
+        Route::delete('/tenants/{id}/products/{productId}', [SuperAdminController::class, 'destroyTenantProduct']);
         
         // Subscription Packages
         Route::get('/packages', [SuperAdminController::class, 'listPackages']);
