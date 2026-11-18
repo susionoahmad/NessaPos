@@ -14,6 +14,28 @@
           Transaksi Sesi Ini: Cash {{ dailyCashCount }} | Non‑Cash {{ dailyNonCashCount }}
         </div>
       </div>
+      <div v-if="auth.currentSession" class="header-right">
+        <button
+          type="button"
+          class="btn-hold-cart"
+          :disabled="cart.length === 0"
+          @click="openHoldModal"
+          title="Tahan / simpan sementara transaksi ini (F7)"
+        >
+          ⏸ Tahan (F7)
+        </button>
+        <button
+          type="button"
+          class="btn-pending-list"
+          :class="{ 'has-pending': pendingTransactions.length > 0 }"
+          @click="openPendingModal"
+          title="Lihat dan lanjutkan transaksi pending (F8)"
+        >
+          📋 Pending
+          <span v-if="pendingTransactions.length > 0" class="pending-badge">{{ pendingTransactions.length }}</span>
+          <span class="pending-key">(F8)</span>
+        </button>
+      </div>
     </header>
 
     <div class="pos-body">
@@ -208,12 +230,89 @@
             <div class="sh-item"><kbd>F2</kbd> Ubah Qty</div>
             <div class="sh-item"><kbd>F3</kbd> Diskon Item</div>
             <div class="sh-item"><kbd>F4</kbd> Semua Barang</div>
+            <div class="sh-item"><kbd>F7</kbd> Tahan Pending</div>
+            <div class="sh-item"><kbd>F8</kbd> Daftar Pending</div>
             <div class="sh-item"><kbd>Ctrl+D</kbd> Diskon Total</div>
             <div class="sh-item"><kbd>DEL</kbd> Hapus Item</div>
             <div class="sh-item"><kbd>F9</kbd> Bayar Pas (Tunai)</div>
             <div class="sh-item"><kbd>F10</kbd> Bayar Custom</div>
-            <div class="sh-item" style="grid-column: span 2;"><kbd>ESC</kbd> Batal Edit / Transaksi</div>
+            <div class="sh-item"><kbd>ESC</kbd> Batal / Tutup</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hold Pending Modal (F7) -->
+    <div v-if="showHoldModal" class="pending-overlay" @click.self="closeHoldModal">
+      <div class="pending-modal small">
+        <div class="pm-header">
+          <h3>⏸ Tahan Transaksi (Pending)</h3>
+          <button type="button" class="pm-close" @click="closeHoldModal">&times;</button>
+        </div>
+        <div class="pm-body">
+          <p class="pm-desc">
+            Simpan sementara <strong>{{ cart.length }} item</strong> (Total <strong>Rp {{ totalAmount.toLocaleString() }}</strong>) agar kasir bisa melayani pelanggan berikutnya terlebih dahulu.
+          </p>
+          <div class="pm-field">
+            <label>Catatan / Penanda Pelanggan (Opsional)</label>
+            <input
+              ref="holdNoteInput"
+              v-model="holdNote"
+              type="text"
+              placeholder="Contoh: Ibu baju biru / Antrian 1 (Kosongkan untuk otomatis)"
+              @keyup.enter="confirmHoldCart"
+              @keyup.esc="closeHoldModal"
+            />
+          </div>
+        </div>
+        <div class="pm-footer">
+          <button type="button" class="pm-btn-cancel" @click="closeHoldModal">Batal</button>
+          <button type="button" class="pm-btn-confirm" @click="confirmHoldCart">Simpan ke Pending</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Transactions List Modal (F8) -->
+    <div v-if="showPendingModal" class="pending-overlay" @click.self="closePendingModal">
+      <div class="pending-modal">
+        <div class="pm-header">
+          <h3>📋 Daftar Transaksi Pending ({{ pendingTransactions.length }})</h3>
+          <button type="button" class="pm-close" @click="closePendingModal">&times;</button>
+        </div>
+        <div class="pm-body">
+          <div v-if="pendingTransactions.length === 0" class="pm-empty">
+            Belum ada transaksi pending yang tersimpan.
+          </div>
+          <div v-else class="pm-list">
+            <div v-for="pt in pendingTransactions" :key="pt.id" class="pm-card">
+              <div class="pm-card-top">
+                <div>
+                  <div class="pm-card-title">{{ pt.note }}</div>
+                  <div class="pm-card-meta">Ditahan pukul {{ pt.time }} • {{ pt.items.length }} jenis barang ({{ pt.totalQty }} pcs)</div>
+                </div>
+                <div class="pm-card-total">Rp {{ (pt.total || 0).toLocaleString() }}</div>
+              </div>
+              <div class="pm-card-items">
+                <span v-for="(it, i) in pt.items.slice(0, 4)" :key="i" class="pm-item-chip">
+                  {{ it.quantity }}x {{ it.product_name }}
+                </span>
+                <span v-if="pt.items.length > 4" class="pm-item-chip more">
+                  +{{ pt.items.length - 4 }} lainnya
+                </span>
+              </div>
+              <div class="pm-card-actions">
+                <button type="button" class="pm-btn-resume" @click="resumePending(pt.id)">
+                  ▶ Lanjutkan Transaksi
+                </button>
+                <button type="button" class="pm-btn-delete" @click="deletePending(pt.id)">
+                  🗑️ Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pm-footer">
+          <button type="button" class="pm-btn-cancel" @click="closePendingModal">Tutup (ESC)</button>
         </div>
       </div>
     </div>
@@ -317,6 +416,165 @@ const showReceipt = ref(false)
 const lastOrder = ref<any>(null)
 const totalDiscountAmount = ref(0)
 
+// Pending / Hold Transactions
+const pendingTransactions = ref<any[]>([])
+const showHoldModal = ref(false)
+const showPendingModal = ref(false)
+const holdNote = ref('')
+const holdNoteInput = ref<HTMLInputElement | null>(null)
+
+const getPendingStorageKey = () => `nessapos_desktop_pending_carts_${auth.user?.id || 'kasir'}`
+
+const loadPendingTransactions = () => {
+  try {
+    const raw = localStorage.getItem(getPendingStorageKey())
+    pendingTransactions.value = raw ? JSON.parse(raw) : []
+  } catch {
+    pendingTransactions.value = []
+  }
+}
+
+const persistPendingTransactions = () => {
+  try {
+    localStorage.setItem(getPendingStorageKey(), JSON.stringify(pendingTransactions.value))
+  } catch (e) {
+    console.error('Failed saving pending transactions', e)
+  }
+}
+
+const openHoldModal = () => {
+  if (cart.value.length === 0) return
+  if (editIndex.value !== -1) {
+    commitCurrentEdit()
+    editIndex.value = -1
+  }
+  showAllProducts.value = false
+  holdNote.value = ''
+  showHoldModal.value = true
+  nextTick(() => {
+    holdNoteInput.value?.focus()
+  })
+}
+
+const closeHoldModal = () => {
+  showHoldModal.value = false
+  searchInput.value?.focus()
+}
+
+const confirmHoldCart = () => {
+  if (cart.value.length === 0) {
+    showHoldModal.value = false
+    return
+  }
+  const now = new Date()
+  const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  const defaultNote = `Pending #${pendingTransactions.value.length + 1}`
+  const totalQty = cart.value.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
+
+  pendingTransactions.value.unshift({
+    id: Date.now(),
+    note: holdNote.value.trim() || defaultNote,
+    time: timeStr,
+    items: cart.value.map(item => ({ ...item })),
+    totalDiscountAmount: totalDiscountAmount.value,
+    total: totalAmount.value,
+    totalQty
+  })
+  persistPendingTransactions()
+
+  cart.value = []
+  totalDiscountAmount.value = 0
+  selectedRowIndex.value = -1
+  searchQuery.value = ''
+  showHoldModal.value = false
+  nextTick(() => {
+    searchInput.value?.focus()
+  })
+}
+
+const openPendingModal = () => {
+  if (editIndex.value !== -1) {
+    commitCurrentEdit()
+    editIndex.value = -1
+  }
+  showAllProducts.value = false
+  showPendingModal.value = true
+}
+
+const closePendingModal = () => {
+  showPendingModal.value = false
+  searchInput.value?.focus()
+}
+
+const resumePending = (pendingId: number) => {
+  const idx = pendingTransactions.value.findIndex(p => p.id === pendingId)
+  if (idx === -1) return
+
+  if (cart.value.length > 0) {
+    const swap = confirm('Keranjang saat ini masih berisi barang. Tahan (simpan ke Pending) keranjang saat ini dulu sebelum melanjutkan transaksi yang dipilih?')
+    if (!swap) return
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    const totalQty = cart.value.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
+    pendingTransactions.value.push({
+      id: Date.now() + 1,
+      note: `Otomatis ditahan (${timeStr})`,
+      time: timeStr,
+      items: cart.value.map(item => ({ ...item })),
+      totalDiscountAmount: totalDiscountAmount.value,
+      total: totalAmount.value,
+      totalQty
+    })
+  }
+
+  const targetIndex = pendingTransactions.value.findIndex(p => p.id === pendingId)
+  const [picked] = pendingTransactions.value.splice(targetIndex, 1)
+
+  // Re-validate stock against current product list
+  const warnings: string[] = []
+  const restoredItems: any[] = []
+  for (const item of picked.items) {
+    const latest = products.value.find(p => p.id === item.product_id)
+    if (latest) {
+      if (latest.shelf_stock <= 0) {
+        warnings.push(`- ${item.product_name}: stok rak habis (dilewati)`)
+        continue
+      }
+      const adjustedQty = Math.min(item.quantity, latest.shelf_stock)
+      if (adjustedQty < item.quantity) {
+        warnings.push(`- ${item.product_name}: qty disesuaikan dari ${item.quantity} menjadi ${adjustedQty} (sisa stok rak)`)
+      }
+      restoredItems.push({
+        ...item,
+        quantity: adjustedQty,
+        total: (item.price * adjustedQty) - (item.discount || 0)
+      })
+    } else {
+      restoredItems.push({ ...item })
+    }
+  }
+
+  cart.value = restoredItems
+  totalDiscountAmount.value = picked.totalDiscountAmount || 0
+  selectedRowIndex.value = cart.value.length > 0 ? 0 : -1
+  persistPendingTransactions()
+  showPendingModal.value = false
+
+  if (warnings.length > 0) {
+    alert('Perhatian perubahan stok saat transaksi pending dilanjutkan:\n' + warnings.join('\n'))
+  }
+
+  nextTick(() => {
+    searchInput.value?.focus()
+  })
+}
+
+const deletePending = (pendingId: number) => {
+  if (!confirm('Hapus transaksi pending ini?')) return
+  pendingTransactions.value = pendingTransactions.value.filter(p => p.id !== pendingId)
+  persistPendingTransactions()
+}
+
 // Session Management
 const showSessionOpenModal = ref(false)
 const showSessionCloseModal = ref(false)
@@ -337,6 +595,7 @@ onMounted(async () => {
   products.value = await GetProducts() || []
   settings.value = await GetSettings() || { tax_rate: 10 }
   auth.cashDrawerEnabled = settings.value?.cash_drawer_enabled !== false
+  loadPendingTransactions()
   
   // Refresh Session & Vault
   await refreshVaultAndSession()
@@ -456,6 +715,22 @@ onUnmounted(() => {
 const handleGlobalKeydown = async (e: KeyboardEvent) => {
   if (showPaymentModal.value || showReceipt.value) return;
 
+  if (showHoldModal.value) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeHoldModal()
+    }
+    return
+  }
+
+  if (showPendingModal.value) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closePendingModal()
+    }
+    return
+  }
+
   if (e.key === 'F1') {
     e.preventDefault()
     if (editIndex.value !== -1) {
@@ -483,6 +758,16 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
       editIndex.value = -1
     }
     toggleShowAllProducts()
+  }
+  else if (e.key === 'F7') {
+    e.preventDefault()
+    if (cart.value.length > 0) {
+      openHoldModal()
+    }
+  }
+  else if (e.key === 'F8') {
+    e.preventDefault()
+    openPendingModal()
   }
   else if (e.key === 'F9') {
     e.preventDefault()
@@ -993,6 +1278,290 @@ const handleSessionClose = async (data: any) => {
   font-size: 12px;
   font-weight: 700;
   color: #64748b;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-hold-cart,
+.btn-pending-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-hold-cart {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.btn-hold-cart:hover:not(:disabled) {
+  background: #fef3c7;
+}
+.btn-hold-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-pending-list {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-pending-list:hover {
+  background: #f1f5f9;
+}
+.btn-pending-list.has-pending {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+.pending-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.pending-key {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+/* Pending Modals */
+.pending-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.pending-modal {
+  background: white;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.pending-modal.small {
+  max-width: 440px;
+}
+
+.pm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pm-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pm-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.pm-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+}
+
+.pm-desc {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.pm-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.pm-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.pm-field input:focus {
+  border-color: #0ea5e9;
+}
+
+.pm-empty {
+  text-align: center;
+  padding: 36px 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.pm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pm-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.pm-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pm-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pm-card-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.pm-card-total {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0284c7;
+  white-space: nowrap;
+}
+
+.pm-card-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pm-item-chip {
+  font-size: 11.5px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.pm-item-chip.more {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+  font-weight: 700;
+}
+
+.pm-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pm-btn-resume {
+  flex: 1;
+  padding: 9px 12px;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pm-btn-resume:hover {
+  background: #0284c7;
+}
+
+.pm-btn-delete {
+  padding: 9px 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pm-btn-delete:hover {
+  background: #fecaca;
+}
+
+.pm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pm-btn-cancel {
+  padding: 9px 16px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pm-btn-confirm {
+  padding: 9px 18px;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pm-btn-confirm:hover {
+  background: #d97706;
 }
 
 .pos-body {
