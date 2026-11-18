@@ -20,21 +20,43 @@
       <!-- Left Panel -->
       <div class="pos-left">
         <div class="search-box">
-          <input 
-            type="text" 
-            ref="searchInput"
-            v-model="searchQuery" 
-            @keyup.enter="handleBarcodeScan"
-            @keydown.down.prevent.stop="moveSearchSelection(1)"
-            @keydown.up.prevent.stop="moveSearchSelection(-1)"
-            placeholder="Scan barcode / Cari barang (Tekan F1)" 
-            autocomplete="off"
-          />
+          <div class="search-input-row">
+            <input 
+              type="text" 
+              ref="searchInput"
+              v-model="searchQuery" 
+              @keyup.enter="handleBarcodeScan"
+              @keydown.down.prevent.stop="moveSearchSelection(1)"
+              @keydown.up.prevent.stop="moveSearchSelection(-1)"
+              placeholder="Scan barcode / Cari barang (Tekan F1)" 
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              class="btn-show-all"
+              :class="{ active: showAllProducts }"
+              @click="toggleShowAllProducts"
+              title="Tampilkan / sembunyikan semua daftar barang (Tekan F4)"
+            >
+              {{ showAllProducts ? '✕ Tutup Daftar (F4)' : `📦 Semua Barang (${products.length}) [F4]` }}
+            </button>
+          </div>
           
           <!-- Search Results Dropdown -->
-          <div v-if="searchQuery.trim().length >= 2 && filteredProducts.length > 0" class="search-results" ref="searchResultsRef">
+          <div v-if="showAllProducts || searchQuery.trim().length >= 2" class="search-results" ref="searchResultsRef">
             <div class="search-results-header">
-              Ditemukan <strong>{{ filteredProducts.length }}</strong> produk (gunakan scroll atau tombol panah ↑↓)
+              <span>
+                <template v-if="searchQuery.trim()">
+                  Ditemukan <strong>{{ filteredProducts.length }}</strong> dari <strong>{{ products.length }}</strong> produk
+                </template>
+                <template v-else>
+                  Menampilkan semua <strong>{{ filteredProducts.length }}</strong> produk
+                </template>
+              </span>
+              <button type="button" class="btn-close-results" @click="closeSearchDropdown">✕ Tutup</button>
+            </div>
+            <div v-if="filteredProducts.length === 0" class="search-empty">
+              {{ searchQuery.trim() ? `Produk "${searchQuery}" tidak ditemukan.` : 'Belum ada data produk.' }}
             </div>
             <div 
               v-for="(p, idx) in filteredProducts" 
@@ -68,41 +90,56 @@
                 v-for="(item, idx) in cart" 
                 :key="idx" 
                 :class="{'selected-row': selectedRowIndex === idx}"
-                @click="selectedRowIndex = idx"
+                @click="openCartField(idx, 'qty')"
               >
-                <td class="col-name" @click="selectedRowIndex = idx">
+                <td class="col-name" @click.stop="openCartField(idx, 'qty')">
                   <div class="pd-barcode">{{ item.product_barcode }}</div>
                   <div class="pd-name">{{ item.product_name }}</div>
                 </td>
-                <td class="col-qty" @click="startEditQty(idx)">
-                  <span v-if="editIndex !== idx" class="touch-cell">
+                <td
+                  class="col-qty"
+                  :class="{ 'active-cell': selectedRowIndex === idx && selectedCartField === 'qty' }"
+                  @click.stop="openCartField(idx, 'qty')"
+                >
+                  <span v-if="!(editIndex === idx && editType === 'qty')" class="touch-cell">
                     {{ item.quantity }}x {{ formatCurrency(item.price) }}
                     <span class="edit-icon">✏️</span>
                   </span>
                   <input 
-                    v-else-if="editType === 'qty'"
+                    v-else
                     type="number" 
                     v-model.number="editValue" 
-                    @blur="saveEdit" 
-                    @keyup.enter="saveEdit" 
-                    @keyup.esc="cancelEdit"
+                    @blur="handleEditBlur(idx, 'qty')" 
+                    @keyup.enter.stop="saveEdit" 
+                    @keyup.esc.stop="cancelEdit"
+                    @keydown.left.prevent.stop="navigateCartHorizontal('qty')"
+                    @keydown.right.prevent.stop="navigateCartHorizontal('disc')"
+                    @keydown.up.prevent.stop="navigateCartVertical(-1)"
+                    @keydown.down.prevent.stop="navigateCartVertical(1)"
                     ref="editInput"
                     class="qty-edit-input"
                   />
-                  <span v-else>{{ item.quantity }}x {{ formatCurrency(item.price) }}</span>
                 </td>
-                <td class="col-disc" @click="startEditDisc(idx)">
-                   <span v-if="editIndex !== idx" class="touch-cell">
+                <td
+                  class="col-disc"
+                  :class="{ 'active-cell': selectedRowIndex === idx && selectedCartField === 'disc' }"
+                  @click.stop="openCartField(idx, 'disc')"
+                >
+                   <span v-if="!(editIndex === idx && editType === 'disc')" class="touch-cell">
                      {{ item.discount > 0 ? '-' + formatCurrency(item.discount) : '-' }}
                      <span class="edit-icon">🏷️</span>
                    </span>
                    <input 
-                    v-else-if="editType === 'disc'"
+                    v-else
                     type="number" 
                     v-model.number="editValue" 
-                    @blur="saveEdit" 
-                    @keyup.enter="saveEdit" 
-                    @keyup.esc="cancelEdit"
+                    @blur="handleEditBlur(idx, 'disc')" 
+                    @keyup.enter.stop="saveEdit" 
+                    @keyup.esc.stop="cancelEdit"
+                    @keydown.left.prevent.stop="navigateCartHorizontal('qty')"
+                    @keydown.right.prevent.stop="navigateCartHorizontal('disc')"
+                    @keydown.up.prevent.stop="navigateCartVertical(-1)"
+                    @keydown.down.prevent.stop="navigateCartVertical(1)"
                     ref="editInput"
                     class="qty-edit-input"
                   />
@@ -174,15 +211,17 @@
           <div class="sh-header">Keyboard Shortcuts</div>
           <div class="sh-grid">
             <div class="sh-item"><kbd>F1</kbd> Cari/Barcode</div>
-            <div class="sh-item"><kbd>TAB</kbd> Ke Keranjang</div>
-            <div class="sh-item"><kbd>UP/DOWN</kbd> Navigasi Item</div>
+            <div class="sh-item"><kbd>TAB</kbd> Ke Keranjang (QTY)</div>
+            <div class="sh-item"><kbd>← →</kbd> QTY / Diskon</div>
+            <div class="sh-item"><kbd>↑ ↓</kbd> Baris QTY / Diskon</div>
             <div class="sh-item"><kbd>F2</kbd> Ubah Qty</div>
             <div class="sh-item"><kbd>F3</kbd> Diskon Item</div>
+            <div class="sh-item"><kbd>F4</kbd> Semua Barang</div>
             <div class="sh-item"><kbd>Ctrl+D</kbd> Diskon Total</div>
             <div class="sh-item"><kbd>DEL</kbd> Hapus Item</div>
             <div class="sh-item"><kbd>F9</kbd> Bayar Pas (Tunai)</div>
             <div class="sh-item"><kbd>F10</kbd> Bayar Custom</div>
-            <div class="sh-item" style="grid-column: span 2;"><kbd>ESC</kbd> Batalkan Transaksi</div>
+            <div class="sh-item" style="grid-column: span 2;"><kbd>ESC</kbd> Batal Edit / Transaksi</div>
           </div>
         </div>
       </div>
@@ -282,9 +321,12 @@ const products = ref<any[]>([])
 const settings = ref<any>(null)
 
 const searchQuery = ref('')
+const showAllProducts = ref(false)
 const searchSelectedIndex = ref(0)
 const cart = ref<any[]>([])
 const selectedRowIndex = ref(-1)
+const selectedCartField = ref<'qty' | 'disc'>('qty')
+let isSwitchingCartCell = false
 
 const editIndex = ref(-1)
 const editType = ref<'qty' | 'disc'>('qty')
@@ -574,6 +616,10 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
 
   if (e.key === 'F1') {
     e.preventDefault()
+    if (editIndex.value !== -1) {
+      commitCurrentEdit()
+      editIndex.value = -1
+    }
     searchInput.value?.focus()
   } 
   else if (e.key === 'F2') {
@@ -588,14 +634,30 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
       startEditDisc(selectedRowIndex.value)
     }
   }
+  else if (e.key === 'F4') {
+    e.preventDefault()
+    if (editIndex.value !== -1) {
+      commitCurrentEdit()
+      editIndex.value = -1
+    }
+    toggleShowAllProducts()
+  }
   else if (e.key === 'F9') {
     e.preventDefault()
+    if (editIndex.value !== -1) {
+      commitCurrentEdit()
+      editIndex.value = -1
+    }
     if (cart.value.length > 0) {
       processPayment({ method: 'Cash', amount: totalAmount.value, change: 0 })
     }
   }
   else if (e.key === 'F10') {
     e.preventDefault()
+    if (editIndex.value !== -1) {
+      commitCurrentEdit()
+      editIndex.value = -1
+    }
     if (cart.value.length > 0) {
       showPaymentModal.value = true
     }
@@ -603,6 +665,8 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
   else if (e.key === 'Escape') {
     if (editIndex.value !== -1) {
       cancelEdit()
+    } else if (showAllProducts.value || searchQuery.value.trim().length > 0) {
+      closeSearchDropdown()
     } else {
       // Cancel transaction
       if (cart.value.length > 0 && confirm('Batalkan transaksi ini?')) {
@@ -622,27 +686,42 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
       // Totals are computed automatically
     }
   }
-  else if (e.key === 'ArrowUp') {
-    if (editIndex.value === -1) {
+  else if (e.key === 'ArrowLeft') {
+    if (document.activeElement !== searchInput.value && cart.value.length > 0) {
       e.preventDefault()
-      if (selectedRowIndex.value > 0) {
-        selectedRowIndex.value--
-      }
+      navigateCartHorizontal('qty')
+    }
+  }
+  else if (e.key === 'ArrowRight') {
+    if (document.activeElement !== searchInput.value && cart.value.length > 0) {
+      e.preventDefault()
+      navigateCartHorizontal('disc')
+    }
+  }
+  else if (e.key === 'ArrowUp') {
+    if (document.activeElement !== searchInput.value && cart.value.length > 0) {
+      e.preventDefault()
+      navigateCartVertical(-1)
     }
   }
   else if (e.key === 'ArrowDown') {
-    if (editIndex.value === -1) {
+    if (document.activeElement !== searchInput.value && cart.value.length > 0) {
       e.preventDefault()
-      if (selectedRowIndex.value < cart.value.length - 1) {
-        selectedRowIndex.value++
-      }
+      navigateCartVertical(1)
     }
   }
   else if (e.key === 'Tab') {
     e.preventDefault()
-    posWrapper.value?.focus()
-    if (cart.value.length > 0 && selectedRowIndex.value === -1) {
-        selectedRowIndex.value = 0
+    showAllProducts.value = false
+    if (cart.value.length > 0) {
+      const targetRow = selectedRowIndex.value >= 0 && selectedRowIndex.value < cart.value.length ? selectedRowIndex.value : 0
+      if (editIndex.value === -1) {
+        openCartField(targetRow, 'qty')
+      } else {
+        openCartField(targetRow, selectedCartField.value === 'qty' ? 'disc' : 'qty')
+      }
+    } else {
+      posWrapper.value?.focus()
     }
   }
   else if (e.ctrlKey && e.key.toLowerCase() === 'l') { // Ctrl+L to close session
@@ -663,12 +742,32 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
 
 const filteredProducts = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (q.length < 2) return []
+  if (!q) {
+    return showAllProducts.value ? products.value : []
+  }
+  if (!showAllProducts.value && q.length < 2) return []
   return products.value.filter(p =>
     String(p.name || '').toLowerCase().includes(q) ||
     String(p.barcode || '').toLowerCase().includes(q)
   )
 })
+
+const toggleShowAllProducts = () => {
+  showAllProducts.value = !showAllProducts.value
+  searchSelectedIndex.value = 0
+  if (showAllProducts.value) {
+    nextTick(() => {
+      searchInput.value?.focus()
+      if (searchResultsRef.value) searchResultsRef.value.scrollTop = 0
+    })
+  }
+}
+
+const closeSearchDropdown = () => {
+  showAllProducts.value = false
+  searchQuery.value = ''
+  searchSelectedIndex.value = 0
+}
 
 watch(searchQuery, () => {
   searchSelectedIndex.value = 0
@@ -689,6 +788,7 @@ const moveSearchSelection = (dir: number) => {
 const addFromSearch = (product: any) => {
   addToCart(product)
   searchQuery.value = ''
+  showAllProducts.value = false
   searchSelectedIndex.value = 0
   searchInput.value?.focus()
 }
@@ -740,46 +840,82 @@ const addToCart = (product: any) => {
   selectedRowIndex.value = 0
 }
 
-const startEditQty = (idx: number) => {
+const openCartField = (idx: number, field: 'qty' | 'disc') => {
+  if (idx < 0 || idx >= cart.value.length) return
+  isSwitchingCartCell = true
+  if (editIndex.value !== -1 && (editIndex.value !== idx || editType.value !== field)) {
+    commitCurrentEdit()
+  }
+  selectedRowIndex.value = idx
+  selectedCartField.value = field
   editIndex.value = idx
-  editType.value = 'qty'
-  editValue.value = cart.value[idx].quantity
+  editType.value = field
+  editValue.value = field === 'qty' ? cart.value[idx].quantity : cart.value[idx].discount
   focusEditInput()
 }
 
+const startEditQty = (idx: number) => {
+  openCartField(idx, 'qty')
+}
+
 const startEditDisc = (idx: number) => {
-  editIndex.value = idx
-  editType.value = 'disc'
-  editValue.value = cart.value[idx].discount
-  focusEditInput()
+  openCartField(idx, 'disc')
+}
+
+const navigateCartHorizontal = (targetField: 'qty' | 'disc') => {
+  if (cart.value.length === 0) return
+  const row = selectedRowIndex.value >= 0 && selectedRowIndex.value < cart.value.length ? selectedRowIndex.value : 0
+  openCartField(row, targetField)
+}
+
+const navigateCartVertical = (dir: number) => {
+  if (cart.value.length === 0) return
+  const currentRow = selectedRowIndex.value >= 0 && selectedRowIndex.value < cart.value.length ? selectedRowIndex.value : 0
+  const nextRow = Math.max(0, Math.min(cart.value.length - 1, currentRow + dir))
+  openCartField(nextRow, selectedCartField.value)
 }
 
 const focusEditInput = () => {
   nextTick(() => {
-    if (editInput.value && editInput.value[0]) {
-        (editInput.value[0] as HTMLInputElement).focus();
-        (editInput.value[0] as HTMLInputElement).select();
+    const el = Array.isArray(editInput.value) ? editInput.value[0] : (editInput.value as HTMLInputElement | null)
+    if (el) {
+      el.focus()
+      el.select()
     }
+    isSwitchingCartCell = false
   })
+}
+
+const commitCurrentEdit = () => {
+  if (editIndex.value === -1) return
+  const item = cart.value[editIndex.value]
+  if (!item) return
+  if (editType.value === 'qty') {
+    const product = products.value.find(p => p.id === item.product_id)
+    const maxStock = product ? product.shelf_stock : 1
+    const val = Number(editValue.value) || 1
+    if (val > maxStock) {
+      alert('Stok tidak mencukupi! Maksimal stok di rak: ' + maxStock)
+      item.quantity = maxStock
+    } else {
+      item.quantity = Math.max(1, val)
+    }
+  } else {
+    item.discount = Math.max(0, Number(editValue.value) || 0)
+  }
+  item.total = (item.price * item.quantity) - item.discount
+}
+
+const handleEditBlur = (idx: number, type: 'qty' | 'disc') => {
+  if (isSwitchingCartCell) return
+  if (editIndex.value === idx && editType.value === type) {
+    saveEdit()
+  }
 }
 
 const saveEdit = () => {
   if (editIndex.value !== -1) {
-    const item = cart.value[editIndex.value]
-    if (editType.value === 'qty') {
-      const product = products.value.find(p => p.id === item.product_id)
-      const maxStock = product ? product.shelf_stock : 1
-      
-      if (editValue.value > maxStock) {
-        alert('Stok tidak mencukupi! Maksimal stok di rak: ' + maxStock)
-        item.quantity = maxStock
-      } else {
-        item.quantity = Math.max(1, editValue.value)
-      }
-    } else {
-      item.discount = Math.max(0, editValue.value)
-    }
-    item.total = (item.price * item.quantity) - item.discount
+    commitCurrentEdit()
     editIndex.value = -1
     posWrapper.value?.focus()
   }
@@ -964,7 +1100,15 @@ const removeItem = (idx: number) => {
   gap: 16px;
 }
 
+.search-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
 .search-box input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   padding: 14px 16px;
   background-color: white;
@@ -979,6 +1123,29 @@ const removeItem = (idx: number) => {
 .search-box input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
+}
+
+.btn-show-all {
+  flex-shrink: 0;
+  padding: 0 16px;
+  background: white;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-show-all:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+}
+.btn-show-all.active {
+  background: #0ea5e9;
+  color: white;
+  border-color: #0ea5e9;
 }
 
 .search-box {
@@ -1009,10 +1176,36 @@ const removeItem = (idx: number) => {
   font-size: 12px;
   padding: 8px 16px;
   border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
 .search-results-header strong {
   color: #0f172a;
+}
+
+.btn-close-results {
+  background: #e2e8f0;
+  color: #334155;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-close-results:hover {
+  background: #cbd5e1;
+}
+
+.search-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .search-item {
@@ -1103,6 +1296,12 @@ const removeItem = (idx: number) => {
 .cart-table tr.selected-row {
   background-color: #f0f9ff;
   border-left: 4px solid #0ea5e9;
+}
+
+.cart-table td.active-cell {
+  background-color: #e0f2fe;
+  box-shadow: inset 0 0 0 2px #0ea5e9;
+  border-radius: 4px;
 }
 
 .pd-barcode {
