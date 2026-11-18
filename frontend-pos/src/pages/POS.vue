@@ -197,11 +197,11 @@
           </div>
           
           <!-- Touch Payment Button -->
-          <div class="touch-actions">
-            <button class="btn-pay-touch" @click="showPaymentModal = true" v-if="cart.length > 0">
+          <div v-if="cart.length > 0" class="touch-actions">
+            <button type="button" class="btn-pay-touch" @click="handleOpenPaymentModal">
               <span>💳</span> BAYAR (F10)
             </button>
-            <button class="btn-pay-fast" @click="processPayment({ method: 'Cash', received: totalAmount })" v-if="cart.length > 0">
+            <button type="button" class="btn-pay-fast" @click="handleFastCashPayment">
               <span>💵</span> TUNAI PAS (F9)
             </button>
           </div>
@@ -965,6 +965,26 @@ const closePayment = () => {
   posWrapper.value?.focus()
 }
 
+const handleOpenPaymentModal = () => {
+  if (editIndex.value !== -1) {
+    commitCurrentEdit()
+    editIndex.value = -1
+  }
+  if (cart.value.length > 0) {
+    showPaymentModal.value = true
+  }
+}
+
+const handleFastCashPayment = () => {
+  if (editIndex.value !== -1) {
+    commitCurrentEdit()
+    editIndex.value = -1
+  }
+  if (cart.value.length > 0) {
+    processPayment({ method: 'Cash', amount: totalAmount.value, change: 0 })
+  }
+}
+
 const processPayment = async (paymentData: any) => {
   const orderReq = {
     user_id: Number(auth.user?.id || 1),
@@ -1386,7 +1406,7 @@ const removeItem = (idx: number) => {
   flex: 35;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-height: 0;
 }
 
@@ -1399,23 +1419,23 @@ const removeItem = (idx: number) => {
 .summary-box {
   background-color: white;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 14px 16px;
 }
 
 .summary-header {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px dashed #cbd5e1;
 }
 
 .summary-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .sc-row {
@@ -1426,23 +1446,24 @@ const removeItem = (idx: number) => {
 
 .form-group label {
   color: #475569;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .customer-select {
-  padding: 8px 12px;
+  padding: 6px 10px;
   background-color: white;
   border: 1px solid #cbd5e1;
   color: #334155;
   border-radius: 6px;
   outline: none;
+  font-size: 13px;
   font-weight: 500;
-  min-width: 150px;
+  min-width: 140px;
 }
 
 .totals-row {
-  font-size: 15px;
+  font-size: 13.5px;
   color: #475569;
   font-weight: 500;
 }
@@ -1452,38 +1473,41 @@ const removeItem = (idx: number) => {
 }
 
 .big-total {
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 2px dashed #e2e8f0;
-  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .bt-label {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #1e293b;
-  margin-bottom: 8px;
 }
 
 .bt-value {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   color: #0ea5e9;
+  line-height: 1.1;
 }
 
 .shortcuts-box {
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 10px;
+  padding: 14px 16px;
   flex: 1;
 }
 
 .sh-header {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   color: #64748b;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1491,13 +1515,13 @@ const removeItem = (idx: number) => {
 .sh-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 8px 10px;
 }
 
 .sh-item {
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: 12px;
   color: #475569;
   font-weight: 500;
 }
@@ -1506,15 +1530,15 @@ const removeItem = (idx: number) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  min-width: 24px;
-  padding: 0 8px;
-  margin-right: 12px;
+  height: 21px;
+  min-width: 22px;
+  padding: 0 6px;
+  margin-right: 8px;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #0ea5e9;
   box-shadow: 0 2px 0 #e2e8f0;
@@ -1624,27 +1648,29 @@ const removeItem = (idx: number) => {
 
 /* Touch UI Styles */
 .touch-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
 }
 .btn-pay-touch, .btn-pay-fast {
-  padding: 14px;
-  border-radius: 12px;
+  padding: 10px 8px;
+  border-radius: 8px;
   border: none;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 12.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
+  gap: 5px;
+  transition: all 0.15s;
   color: white;
+  white-space: nowrap;
 }
-.btn-pay-touch { background: linear-gradient(135deg, #0ea5e9, #6366f1); box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
-.btn-pay-fast { background: #10b981; }
+.btn-pay-touch { background: linear-gradient(135deg, #0ea5e9, #6366f1); box-shadow: 0 3px 8px rgba(14,165,233,0.25); }
+.btn-pay-fast { background: #10b981; box-shadow: 0 3px 8px rgba(16,185,129,0.25); }
+.btn-pay-touch:hover, .btn-pay-fast:hover { filter: brightness(1.06); }
 
 .btn-pay-touch:active, .btn-pay-fast:active { transform: scale(0.98); opacity: 0.9; }
 
