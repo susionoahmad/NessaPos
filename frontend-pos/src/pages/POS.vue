@@ -794,16 +794,19 @@ const addFromSearch = (product: any) => {
 }
 
 const handleBarcodeScan = () => {
-  if (!searchQuery.value.trim()) return;
-
-  // If there are search results and we press enter, add the selected one
+  // If there are search results (including Show All Products / F4) and we press enter, add the selected one
   if (filteredProducts.value.length > 0) {
-    addFromSearch(filteredProducts.value[searchSelectedIndex.value])
+    const selected = filteredProducts.value[searchSelectedIndex.value] || filteredProducts.value[0]
+    if (selected) {
+      addFromSearch(selected)
+    }
     return
   }
 
-  const q = searchQuery.value.toLowerCase()
-  const match = products.value.find(p => p.barcode === q || p.name.toLowerCase() === q)
+  if (!searchQuery.value.trim()) return;
+
+  const q = searchQuery.value.trim().toLowerCase()
+  const match = products.value.find(p => String(p.barcode || '').toLowerCase() === q || String(p.name || '').toLowerCase() === q)
   
   if (match) {
     addToCart(match)
