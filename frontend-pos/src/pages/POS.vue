@@ -25,14 +25,17 @@
             ref="searchInput"
             v-model="searchQuery" 
             @keyup.enter="handleBarcodeScan"
-            @keydown.down="moveSearchSelection(1)"
-            @keydown.up="moveSearchSelection(-1)"
+            @keydown.down.prevent.stop="moveSearchSelection(1)"
+            @keydown.up.prevent.stop="moveSearchSelection(-1)"
             placeholder="Scan barcode / Cari barang (Tekan F1)" 
             autocomplete="off"
           />
           
           <!-- Search Results Dropdown -->
-          <div v-if="searchQuery.length >= 2 && filteredProducts.length > 0" class="search-results">
+          <div v-if="searchQuery.trim().length >= 2 && filteredProducts.length > 0" class="search-results" ref="searchResultsRef">
+            <div class="search-results-header">
+              Ditemukan <strong>{{ filteredProducts.length }}</strong> produk (gunakan scroll atau tombol panah ↑↓)
+            </div>
             <div 
               v-for="(p, idx) in filteredProducts" 
               :key="p.id" 
@@ -273,6 +276,7 @@ const router = useRouter()
 
 const posWrapper = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
+const searchResultsRef = ref<HTMLElement | null>(null)
 
 const products = ref<any[]>([])
 const settings = ref<any>(null)
@@ -658,17 +662,28 @@ const handleGlobalKeydown = async (e: KeyboardEvent) => {
 }
 
 const filteredProducts = computed(() => {
-  if (searchQuery.value.length < 2) return []
-  const q = searchQuery.value.toLowerCase()
-  return products.value.filter(p => 
-    p.name.toLowerCase().includes(q) || 
-    p.barcode.toLowerCase().includes(q)
-  ).slice(0, 10)
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q.length < 2) return []
+  return products.value.filter(p =>
+    String(p.name || '').toLowerCase().includes(q) ||
+    String(p.barcode || '').toLowerCase().includes(q)
+  )
+})
+
+watch(searchQuery, () => {
+  searchSelectedIndex.value = 0
+  if (searchResultsRef.value) {
+    searchResultsRef.value.scrollTop = 0
+  }
 })
 
 const moveSearchSelection = (dir: number) => {
   if (filteredProducts.value.length === 0) return
   searchSelectedIndex.value = (searchSelectedIndex.value + dir + filteredProducts.value.length) % filteredProducts.value.length
+  nextTick(() => {
+    const activeEl = searchResultsRef.value?.querySelector('.search-item.active') as HTMLElement | null
+    activeEl?.scrollIntoView({ block: 'nearest' })
+  })
 }
 
 const addFromSearch = (product: any) => {
@@ -978,10 +993,26 @@ const removeItem = (idx: number) => {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
   z-index: 100;
   margin-top: 4px;
-  overflow: hidden;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+}
+
+.search-results-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.search-results-header strong {
+  color: #0f172a;
 }
 
 .search-item {
