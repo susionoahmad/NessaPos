@@ -164,6 +164,7 @@ func (a *API) GetDetailedSales() ([]map[string]interface{}, error) {
 // Print Methods
 func (a *API) PrintReceiptThermal(req services.OrderRequest) error {
 	order := models.Order{
+		ID:           req.ID,
 		UserID:       uint(req.UserID),
 		TotalAmount:  req.TotalAmount,
 		TaxAmount:    req.TaxAmount,
@@ -176,14 +177,29 @@ func (a *API) PrintReceiptThermal(req services.OrderRequest) error {
 	}
 
 	printerName := ""
-	header := services.PrintHeader{}
-	footer := ""
+	header := services.PrintHeader{
+		StoreName:     req.StoreName,
+		StoreAddress:  req.StoreAddress,
+		StorePhone:    req.StorePhone,
+		CashierName:   req.CashierName,
+		PaymentMethod: req.PaymentMethod,
+		PaperWidth:    req.PrinterWidth,
+	}
+	footer := req.ReceiptText
 	if s, err := a.settingService.GetSettings(); err == nil {
 		printerName = s.PrinterName
-		header.StoreName = s.StoreName
-		header.StoreAddress = s.StoreAddress
-		header.StorePhone = s.StorePhone
-		footer = s.ReceiptText
+		if header.StoreName == "" {
+			header.StoreName = s.StoreName
+		}
+		if header.StoreAddress == "" {
+			header.StoreAddress = s.StoreAddress
+		}
+		if header.StorePhone == "" {
+			header.StorePhone = s.StorePhone
+		}
+		if footer == "" {
+			footer = s.ReceiptText
+		}
 	}
 	return a.printService.PrintReceiptThermalWithPrinter(order, printerName, header, footer)
 }

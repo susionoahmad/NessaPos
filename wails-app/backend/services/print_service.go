@@ -16,9 +16,54 @@ import (
 type PrintService struct{}
 
 type PrintHeader struct {
-	StoreName    string
-	StoreAddress string
-	StorePhone   string
+	StoreName     string
+	StoreAddress  string
+	StorePhone    string
+	CashierName   string
+	PaymentMethod string
+	PaperWidth    string
+}
+
+func formatIDR(val float64) string {
+	neg := val < 0
+	if neg {
+		val = -val
+	}
+	s := strconv.FormatInt(int64(val+0.5), 10)
+	var out strings.Builder
+	rem := len(s) % 3
+	if rem > 0 {
+		out.WriteString(s[:rem])
+		if len(s) > rem {
+			out.WriteByte('.')
+		}
+	}
+	for i := rem; i < len(s); i += 3 {
+		out.WriteString(s[i : i+3])
+		if i+3 < len(s) {
+			out.WriteByte('.')
+		}
+	}
+	if neg {
+		return "-" + out.String()
+	}
+	return out.String()
+}
+
+func formatTwoCol(left, right string, cols int) string {
+	l := strings.ReplaceAll(strings.ReplaceAll(left, "\r", ""), "\n", " ")
+	r := strings.ReplaceAll(strings.ReplaceAll(right, "\r", ""), "\n", " ")
+	if len(l)+len(r)+1 > cols {
+		maxLeft := cols - len(r) - 1
+		if maxLeft < 0 {
+			maxLeft = 0
+		}
+		if len(l) > maxLeft {
+			l = l[:maxLeft]
+		}
+		return l + " " + r
+	}
+	return l + strings.Repeat(" ", cols-len(l)-len(r)) + r
 }
 
 type SessionOpenPrintRequest struct {
@@ -85,53 +130,79 @@ func (s *PrintService) PrintReceiptThermalWithPrinter(order models.Order, printe
 	}
 	defer p.Close()
 
-	// 3. Format ESC/POS (Data mentah untuk printer thermal)
+	// 3. Format ESC/POS (Data mentah untuk printer thermal 58mm / 80mm)
+	cols := 32
+	if strings.EqualFold(strings.TrimSpace(header.PaperWidth), "80mm") {
+		cols = 48
+	}
+	divider := strings.Repeat("-", cols) + "\n"
 	now := time.Now().Format("02/01/06 15:04")
+
+	storeName := strings.TrimSpace(header.StoreName)
+	if storeName == "" {
+		storeName = "NessaPOS"
+	}
+	cashierLabel := strings.TrimSpace(header.CashierName)
+	if cashierLabel == "" {
+		cashierLabel = fmt.Sprintf("User #%d", order.UserID)
+	}
+
 	receiptData := "\x1b\x40"     // Initialize
 	receiptData += "\x1b\x61\x01" // Align Center
 
 	// Header Toko
-	receiptData += fmt.Sprintf("\x1b\x21\x20%s\x1b\x21\x00\n", header.StoreName) // Double Width
-	if header.StoreAddress != "" {
-		receiptData += fmt.Sprintf("%s\n", header.StoreAddress)
+	receiptData += fmt.Sprintf("\x1b\x21\x20%s\x1b\x21\x00\n", storeName) // Double Width
+	if strings.TrimSpace(header.StoreAddress) != "" {
+		receiptData += fmt.Sprintf("%s\n", strings.TrimSpace(header.StoreAddress))
 	}
-	if header.StorePhone != "" {
-		receiptData += fmt.Sprintf("Tel: %s\n", header.StorePhone)
+	if strings.TrimSpace(header.StorePhone) != "" {
+		receiptData += fmt.Sprintf("Tel: %s\n", strings.TrimSpace(header.StorePhone))
 	}
 
-	receiptData += "--------------------------------\n"
-	receiptData += fmt.Sprintf("No: #%d  %s\n", order.ID, now)
-	receiptData += fmt.Sprintf("Kasir: %d\n", order.UserID)
-	receiptData += "--------------------------------\n"
+	receiptData += divider
+	receiptData += "\x1b\x61\x00" // Align Left
+	if order.ID > 0 {
+		receiptData += formatTwoCol(fmt.Sprintf("No: #%d", order.ID), now, cols) + "\n"
+	} else {
+		receiptData += formatTwoCol("No: #TEST", now, cols) + "\n"
+	}
+	receiptData += fmt.Sprintf("Kasir : %s\n", cashierLabel)
+	if strings.TrimSpace(header.PaymentMethod) != "" {
+		receiptData += fmt.Sprintf("Metode: %s\n", strings.TrimSpace(header.PaymentMethod))
+	}
+	receiptData += divider
 
 	// Items
-	receiptData += "\x1b\x61\x00" // Align Left
 	for _, item := range order.Items {
-		receiptData += fmt.Sprintf("%-32s\n", item.ProductName)
-		qtyPrice := fmt.Sprintf("%d x %.0f", item.Quantity, item.Price)
-		receiptData += fmt.Sprintf("%-20s %11.0f\n", qtyPrice, item.Total)
+		receiptData += fmt.Sprintf("%s\n", item.ProductName)
+		qtyPrice := fmt.Sprintf("%d x %s", item.Quantity, formatIDR(item.Price))
+		grossLine := formatIDR(item.Price * float64(item.Quantity))
+		receiptData += formatTwoCol(qtyPrice, grossLine, cols) + "\n"
+		if item.Discount > 0 {
+			receiptData += formatTwoCol("  Diskon Item", "-"+formatIDR(item.Discount), cols) + "\n"
+		}
 	}
 
-	receiptData += "--------------------------------\n"
+	receiptData += divider
 
 	// Totals
-	receiptData += "\x1b\x61\x02" // Align Right
-	receiptData += fmt.Sprintf("Subtotal:  Rp %10.0f\n", order.TotalAmount)
-	if order.TaxAmount > 0 {
-		receiptData += fmt.Sprintf("Pajak:     Rp %10.0f\n", order.TaxAmount)
-	}
+	receiptData += formatTwoCol("Subtotal", "Rp "+formatIDR(order.TotalAmount), cols) + "\n"
 	if order.Discount > 0 {
-		receiptData += fmt.Sprintf("Diskon:    Rp %10.0f\n", order.Discount)
+		receiptData += formatTwoCol("Diskon", "-Rp "+formatIDR(order.Discount), cols) + "\n"
 	}
-	receiptData += fmt.Sprintf("\x1b\x21\x01TOTAL:     Rp %10.0f\x1b\x21\x00\n", order.FinalAmount)
-	receiptData += "--------------------------------\n"
-	receiptData += fmt.Sprintf("Bayar:     Rp %10.0f\n", order.AmountPaid)
-	receiptData += fmt.Sprintf("Kembali:   Rp %10.0f\n", order.ChangeAmount)
+	if order.TaxAmount > 0 {
+		receiptData += formatTwoCol("Pajak", "Rp "+formatIDR(order.TaxAmount), cols) + "\n"
+	}
+	receiptData += "\x1b\x45\x01" + formatTwoCol("TOTAL", "Rp "+formatIDR(order.FinalAmount), cols) + "\x1b\x45\x00\n"
+	receiptData += divider
+	receiptData += formatTwoCol("Bayar", "Rp "+formatIDR(order.AmountPaid), cols) + "\n"
+	receiptData += formatTwoCol("Kembali", "Rp "+formatIDR(order.ChangeAmount), cols) + "\n"
+	receiptData += divider
 
 	// Footer
-	receiptData += "\n\x1b\x61\x01" // Center
-	if footer != "" {
-		receiptData += fmt.Sprintf("%s\n", footer)
+	receiptData += "\x1b\x61\x01" // Center
+	if strings.TrimSpace(footer) != "" {
+		receiptData += fmt.Sprintf("%s\n", strings.TrimSpace(footer))
 	} else {
 		receiptData += "Terima Kasih Atas\nKunjungan Anda\n"
 	}

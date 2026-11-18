@@ -91,7 +91,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const res = await api.get('/settings')
-      cashDrawerEnabled.value = res.data?.cash_drawer_enabled !== false
+      if (res.data) {
+        cashDrawerEnabled.value = res.data?.cash_drawer_enabled !== false
+        localStorage.setItem('settings', JSON.stringify(res.data))
+        if (res.data.bridge_token) localStorage.setItem('bridge_token', res.data.bridge_token)
+        if (res.data.bridge_port) localStorage.setItem('bridge_port', String(res.data.bridge_port))
+      }
     } catch (e: any) {
       if (e.response?.status === 401) {
         clearSession()

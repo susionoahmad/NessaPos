@@ -328,7 +328,9 @@ export namespace services {
 	    }
 	}
 	export class OrderRequest {
+	    id: number;
 	    user_id: number;
+	    cashier_name: string;
 	    total_amount: number;
 	    tax_amount: number;
 	    discount: number;
@@ -337,6 +339,11 @@ export namespace services {
 	    payment_method: string;
 	    amount_paid: number;
 	    change_amount: number;
+	    store_name: string;
+	    store_address: string;
+	    store_phone: string;
+	    receipt_text: string;
+	    printer_width: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OrderRequest(source);
@@ -344,7 +351,9 @@ export namespace services {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
 	        this.user_id = source["user_id"];
+	        this.cashier_name = source["cashier_name"];
 	        this.total_amount = source["total_amount"];
 	        this.tax_amount = source["tax_amount"];
 	        this.discount = source["discount"];
@@ -353,6 +362,11 @@ export namespace services {
 	        this.payment_method = source["payment_method"];
 	        this.amount_paid = source["amount_paid"];
 	        this.change_amount = source["change_amount"];
+	        this.store_name = source["store_name"];
+	        this.store_address = source["store_address"];
+	        this.store_phone = source["store_phone"];
+	        this.receipt_text = source["receipt_text"];
+	        this.printer_width = source["printer_width"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

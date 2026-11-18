@@ -537,10 +537,14 @@ const formatDate = (dateStr: string | null | undefined) => {
 const bridgeStatus = ref('offline')
 const isWailsApp = computed(() => isWails())
 
+import ReceiptPreview from '../components/ReceiptPreview.vue'
+import { printReceipt, getPrintMethod, getPrinterWidth } from '../utils/printer'
+import { checkBridgeConnection, isWails } from '../utils/bridge'
+
 const printerConfig = ref({
-  method: localStorage.getItem('print_method') || 'browser',
+  method: getPrintMethod(),
   port: parseInt(localStorage.getItem('bridge_port') || '12348'),
-  width: localStorage.getItem('printer_width') || '58mm'
+  width: getPrinterWidth()
 })
 
 const desktopApiUrl = ref(localStorage.getItem('api_url') || '')
@@ -549,16 +553,20 @@ const printerStatusMessage = ref('')
 
 const savePrinterConfig = () => {
   localStorage.setItem('print_method', printerConfig.value.method)
-  localStorage.setItem('bridge_port', printerConfig.value.port.toString())
+  localStorage.setItem('bridge_port', String(printerConfig.value.port || 12348))
   localStorage.setItem('printer_width', printerConfig.value.width)
-  
+  form.value.bridge_port = printerConfig.value.port || 12348
+
   // Also update bridge_token in localStorage from the form
   if (form.value.bridge_token) {
     localStorage.setItem('bridge_token', form.value.bridge_token)
   } else {
     localStorage.removeItem('bridge_token')
   }
-  
+
+  // Keep localStorage settings snapshot updated for printer.ts
+  localStorage.setItem('settings', JSON.stringify(form.value))
+
   checkPrinterStatus()
 }
 
@@ -583,14 +591,21 @@ const regenerateToken = () => {
 const checkPrinterStatus = async () => {
   printerStatusMessage.value = ''
 
-  if (printerConfig.value.method !== 'wails') {
-    printerStatus.value = true // Browser/RawBT assume OK
+  if (printerConfig.value.method === 'browser') {
+    printerStatus.value = true
+    printerStatusMessage.value = `Browser Print aktif (${printerConfig.value.width}). Dialog cetak browser akan terbuka saat mencetak.`
+    return
+  }
+
+  if (printerConfig.value.method === 'rawbt') {
+    printerStatus.value = true
+    printerStatusMessage.value = `RawBT Android aktif (${printerConfig.value.width}). Pastikan aplikasi RawBT sudah terpasang dan terhubung ke printer Bluetooth.`
     return
   }
 
   if (isWailsApp.value) {
     printerStatus.value = true
-    printerStatusMessage.value = 'Aplikasi desktop mencetak langsung lewat backend Go lokal.'
+    printerStatusMessage.value = `Aplikasi desktop mencetak langsung lewat backend Go lokal (${printerConfig.value.width}).`
     return
   }
 
@@ -598,52 +613,61 @@ const checkPrinterStatus = async () => {
     const bridge = await checkBridgeConnection()
     printerStatus.value = bridge.ok
     printerStatusMessage.value = bridge.ok
-      ? 'Bridge lokal terhubung. Browser web siap mengirim perintah cetak ke aplikasi desktop.'
+      ? `Bridge lokal terhubung (${printerConfig.value.width}). Browser web siap mengirim perintah cetak ke aplikasi desktop.`
       : bridge.message || 'Bridge lokal belum merespons.'
   } catch {
     printerStatus.value = false
-    printerStatusMessage.value = 'Bridge lokal belum merespons. Pastikan NessaPOS Desktop berjalan di PC kasir.'
+    printerStatusMessage.value = 'Bridge lokal belum merespons. Pastikan NessaPOS Online Desktop berjalan di PC kasir.'
   }
 }
 
-import ReceiptPreview from '../components/ReceiptPreview.vue'
-import { printReceipt } from '../utils/printer'
-import { checkBridgeConnection, isWails } from '../utils/bridge'
-
 const showTestReceipt = ref(false)
-const dummyOrder = ref({
-  id: 'TEST-001',
-  user_id: auth.value?.id,
-  date: new Date().toLocaleString(),
+const buildDummyOrder = () => ({
+  id: 0,
+  user_id: Number(auth.value?.id || 1),
+  cashier_name: auth.value?.username || 'Kasir',
+  date: new Date().toLocaleString('id-ID'),
   total_amount: 50000,
-  tax_amount: 5000,
+  tax_amount: 0,
   discount: 0,
-  final_amount: 55000,
+  final_amount: 50000,
+  payment_method: 'Cash',
   amount_paid: 100000,
-  change_amount: 45000,
+  change_amount: 50000,
   items: [
-    { product_name: 'Item Tes 1', price: 25000, quantity: 2, total: 50000 }
+    { product_id: 0, product_name: 'Tes Produk Thermal', price: 25000, quantity: 2, discount: 0, total: 50000 }
   ]
 })
+const dummyOrder = ref(buildDummyOrder())
 
 const testPrint = async () => {
-  const method = localStorage.getItem('print_method') || 'browser'
-  if (method === 'browser') {
-    showTestReceipt.value = true
-  } else {
-    await printReceipt(dummyOrder.value)
+  savePrinterConfig()
+  dummyOrder.value = buildDummyOrder()
+  const method = printerConfig.value.method
+  try {
+    if (method === 'browser') {
+      await printReceipt(dummyOrder.value, { methodOverride: 'browser' })
+    } else if (method === 'rawbt') {
+      await printReceipt(dummyOrder.value, { methodOverride: 'rawbt' })
+    } else {
+      await printReceipt(dummyOrder.value, { methodOverride: 'wails' })
+      alert('Perintah tes cetak berhasil dikirim ke printer desktop/bridge.')
+    }
+  } catch (e: any) {
+    alert('Tes cetak gagal: ' + (e?.message || e))
   }
 }
 
 const testThermalPrint = async () => {
+  savePrinterConfig()
   try {
-    if (!isWailsApp.value) {
-      alert('Fitur ini hanya tersedia untuk aplikasi desktop Wails.')
-      return
+    if (isWailsApp.value) {
+      await TestPrint(form.value.printer_name || '')
+      alert('Tes cetak thermal berhasil. Silakan periksa printer.')
+    } else {
+      await printReceipt(buildDummyOrder(), { methodOverride: 'wails' })
+      alert('Tes cetak thermal via Bridge berhasil. Silakan periksa printer.')
     }
-
-    await TestPrint(form.value.printer_name || '')
-    alert('Tes cetak thermal berhasil. Silakan periksa printer.')
   } catch (e: any) {
     console.error('Tes print thermal gagal:', e)
     alert('Tes cetak thermal gagal: ' + (e?.message || e))
@@ -708,10 +732,14 @@ const loadSettings = async () => {
       // Use Object.assign to keep default values if some fields are missing/null in res.data
       Object.assign(form.value, res.data)
       authStore.cashDrawerEnabled = form.value.cash_drawer_enabled !== false
+      localStorage.setItem('settings', JSON.stringify(res.data))
       
       // Also sync to localStorage for the bridge utility
       if (res.data.bridge_token) localStorage.setItem('bridge_token', res.data.bridge_token)
-      if (res.data.bridge_port) localStorage.setItem('bridge_port', res.data.bridge_port.toString())
+      if (res.data.bridge_port) {
+        localStorage.setItem('bridge_port', res.data.bridge_port.toString())
+        printerConfig.value.port = Number(res.data.bridge_port) || 12348
+      }
     }
     desktopApiUrl.value = localStorage.getItem('api_url') || desktopApiUrl.value
   } catch(e) {
@@ -761,6 +789,7 @@ const saveSettings = async () => {
     })
     
     authStore.cashDrawerEnabled = form.value.cash_drawer_enabled !== false
+    localStorage.setItem('settings', JSON.stringify(form.value))
     
     if (form.value.bridge_token) {
       localStorage.setItem('bridge_token', form.value.bridge_token)

@@ -19,7 +19,9 @@ func NewOrderService(repo *repository.OrderRepository, sessionRepo *repository.S
 }
 
 type OrderRequest struct {
+	ID            uint               `json:"id"`
 	UserID        int                `json:"user_id"`
+	CashierName   string             `json:"cashier_name"`
 	TotalAmount   float64            `json:"total_amount"`
 	TaxAmount     float64            `json:"tax_amount"`
 	Discount      float64            `json:"discount"`
@@ -28,6 +30,11 @@ type OrderRequest struct {
 	PaymentMethod string             `json:"payment_method"`
 	AmountPaid    float64            `json:"amount_paid"`
 	ChangeAmount  float64            `json:"change_amount"`
+	StoreName     string             `json:"store_name"`
+	StoreAddress  string             `json:"store_address"`
+	StorePhone    string             `json:"store_phone"`
+	ReceiptText   string             `json:"receipt_text"`
+	PrinterWidth  string             `json:"printer_width"`
 }
 
 func (s *OrderService) CreateOrder(req OrderRequest) error {

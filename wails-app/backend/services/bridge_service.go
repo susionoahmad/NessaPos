@@ -214,6 +214,7 @@ func (s *BridgeService) handlePrintReceipt(w http.ResponseWriter, r *http.Reques
 	}
 
 	order := models.Order{
+		ID:           req.ID,
 		UserID:       uint(req.UserID),
 		TotalAmount:  req.TotalAmount,
 		TaxAmount:    req.TaxAmount,
@@ -227,12 +228,35 @@ func (s *BridgeService) handlePrintReceipt(w http.ResponseWriter, r *http.Reques
 
 	settings, _ := s.settingService.GetSettings()
 	header := PrintHeader{
-		StoreName:    settings.StoreName,
-		StoreAddress: settings.StoreAddress,
-		StorePhone:   settings.StorePhone,
+		StoreName:     req.StoreName,
+		StoreAddress:  req.StoreAddress,
+		StorePhone:    req.StorePhone,
+		CashierName:   req.CashierName,
+		PaymentMethod: req.PaymentMethod,
+		PaperWidth:    req.PrinterWidth,
+	}
+	footer := req.ReceiptText
+	if settings != nil {
+		if header.StoreName == "" {
+			header.StoreName = settings.StoreName
+		}
+		if header.StoreAddress == "" {
+			header.StoreAddress = settings.StoreAddress
+		}
+		if header.StorePhone == "" {
+			header.StorePhone = settings.StorePhone
+		}
+		if footer == "" {
+			footer = settings.ReceiptText
+		}
 	}
 
-	err := s.printService.PrintReceiptThermalWithPrinter(order, settings.PrinterName, header, settings.ReceiptText)
+	printerName := ""
+	if settings != nil {
+		printerName = settings.PrinterName
+	}
+
+	err := s.printService.PrintReceiptThermalWithPrinter(order, printerName, header, footer)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

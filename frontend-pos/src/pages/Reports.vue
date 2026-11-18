@@ -758,7 +758,11 @@ const handleAddCapital = async () => {
 }
 
 const reprintThermal = async (order: any) => {
-    await printReceipt(order)
+    try {
+        await printReceipt(order)
+    } catch (e: any) {
+        alert('Gagal mencetak ulang struk: ' + (e?.message || e))
+    }
 }
 
 const isPrinting = ref(false)

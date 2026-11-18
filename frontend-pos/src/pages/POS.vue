@@ -637,6 +637,7 @@ onMounted(async () => {
     auth.cashDrawerEnabled = settings.value?.cash_drawer_enabled !== false
     loadPendingTransactions()
     if (settRes.data) {
+      localStorage.setItem('settings', JSON.stringify(settRes.data))
       if (settRes.data.bridge_token) localStorage.setItem('bridge_token', settRes.data.bridge_token)
       if (settRes.data.bridge_port) localStorage.setItem('bridge_port', settRes.data.bridge_port.toString())
     }
@@ -844,18 +845,19 @@ const startSettingsPolling = () => {
   }
   settingsPollTimer = window.setInterval(async () => {
     try {
-      const s = await GetSettings()
+      const res = await api.get('/settings')
+      const s = res.data
       if (s) {
         settings.value = { ...s } as any
         auth.cashDrawerEnabled = settings.value?.cash_drawer_enabled !== false
-        // Save bridge settings to localStorage for bridge.ts to use
-        if (s.bridge_port) localStorage.setItem('bridge_port', s.bridge_port.toString())
+        localStorage.setItem('settings', JSON.stringify(s))
+        if (s.bridge_port) localStorage.setItem('bridge_port', String(s.bridge_port))
         if (s.bridge_token) localStorage.setItem('bridge_token', s.bridge_token)
       }
     } catch (e) {
       console.error("Settings poll error", e)
     }
-  }, 15000)
+  }, 30000)
 }
 
 onUnmounted(() => {
@@ -1294,15 +1296,18 @@ const processPayment = async (paymentData: any) => {
     const res = await api.post('/orders', orderReq)
     
     // Print using the server-generated order ID when available
+    const nowDisplay = new Date().toLocaleString('id-ID')
     const orderToPrint = {
       ...orderReq,
-      id: res.data?.id || 0
+      id: res.data?.id || 0,
+      cashier_name: auth.user?.username || '',
+      date: nowDisplay
     }
 
     await refreshVaultAndSession()
     await refreshDailyStats()
 
-    lastOrder.value = { ...orderReq, date: new Date().toLocaleString() }
+    lastOrder.value = orderToPrint
     showPaymentModal.value = false
     showReceipt.value = true
 
