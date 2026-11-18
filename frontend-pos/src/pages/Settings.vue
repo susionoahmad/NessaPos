@@ -495,7 +495,7 @@ const formatImageUrl = (path: string) => {
   if (!path) return ''
   if (path.startsWith('http')) return path
   // Point to the actual production backend URL
-  const baseUrl = 'https://nessapos.kalkulatorin.com'
+  const baseUrl = 'https://api.nessapos.my.id'
   return `${baseUrl}/storage/${path}`
 }
 

@@ -128,7 +128,7 @@ func (s *BridgeService) corsMiddleware(next http.Handler) http.Handler {
 
 		// LOGIC PERMISIF KHUSUS LOCALHOST + TRUSTED ORIGIN
 		// Jika dari localhost dan berasal dari domain Vercel Anda, izinkan cetak meskipun token salah.
-		isTrustedOrigin := strings.Contains(origin, "vercel.app") || strings.Contains(origin, "nessapos.app") || origin == ""
+		isTrustedOrigin := strings.Contains(origin, "nessapos.my.id") || strings.Contains(origin, "vercel.app") || strings.Contains(origin, "nessapos.app") || origin == ""
 		
 		if isLocalhost && isTrustedOrigin {
 			if token != settings.BridgeToken {

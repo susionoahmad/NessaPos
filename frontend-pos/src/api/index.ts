@@ -4,7 +4,7 @@ type ApiMode = 'local' | 'online'
 
 const API_MODE = (import.meta.env.VITE_API_MODE || '').trim().toLowerCase() as ApiMode | ''
 const LOCAL_API_URL = import.meta.env.VITE_API_URL_LOCAL || 'http://localhost:8000/api'
-const ONLINE_API_URL = import.meta.env.VITE_API_URL_ONLINE || 'https://nessapos.kalkulatorin.com'
+const ONLINE_API_URL = import.meta.env.VITE_API_URL_ONLINE || 'https://api.nessapos.my.id'
 const LEGACY_API_URL = import.meta.env.VITE_API_URL || ''
 
 export const normalizeApiUrl = (url: string): string => {

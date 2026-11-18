@@ -33,8 +33,8 @@ const (
 	licenseStatusTampered  = "tampered"
 	licenseStatusMissing   = "missing"
 
-	// URL server aktivasi Laravel Backend (GCP Production)
-	activationServerURL = "https://nessapos.kalkulatorin.com/api/desktop/activate"
+	// URL server aktivasi Laravel Backend (Production)
+	activationServerURL = "https://api.nessapos.my.id/api/desktop/activate"
 )
 
 type LicenseService struct {

@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	trialDays              = 0 // Set ke 0 untuk menonaktifkan trial
+	trialDays              = 7 // Set ke 7 hari sesuai permintaan user
 	clockSkewTolerance     = 5 * time.Minute
 	licensePublicKeyBase64 = "a1L4QmEhDlumadDKuCbcu0x1BOdbDjtF01S45G0MZYY="
 	licenseStatusOK        = "ok"
@@ -33,9 +33,8 @@ const (
 	licenseStatusTampered  = "tampered"
 	licenseStatusMissing   = "missing"
 
-	// URL server aktivasi Vercel
-	// URL Production Vercel (Ganti jika nama project Anda berbeda)
-	activationServerURL = "https://nessapos-api.vercel.app/api/activate"
+	// URL server aktivasi Laravel Backend (Production)
+	activationServerURL = "https://api.nessapos.my.id/api/desktop/activate"
 )
 
 type LicenseService struct {
@@ -50,13 +49,15 @@ type LicenseStatus struct {
 	DeviceID      string `json:"device_id"`
 	Licensee      string `json:"licensee"`
 	LicenseExpiry string `json:"license_expiry"`
+	SerialKey     string `json:"serial_key"`
 }
 
 type LicensePayload struct {
-	IssuedTo string `json:"issued_to"`
-	DeviceID string `json:"device_id"`
-	IssuedAt string `json:"issued_at"`
-	Expiry   string `json:"expiry"`
+	IssuedTo  string `json:"issued_to"`
+	DeviceID  string `json:"device_id"`
+	IssuedAt  string `json:"issued_at"`
+	Expiry    string `json:"expiry"`
+	SerialKey string `json:"serial_key"`
 }
 
 type LicenseFile struct {
@@ -98,6 +99,7 @@ func (s *LicenseService) GetStatus() (*LicenseStatus, error) {
 				DeviceID:      deviceID,
 				Licensee:      payload.IssuedTo,
 				LicenseExpiry: payload.Expiry,
+				SerialKey:     payload.SerialKey,
 			}, nil
 		}
 		return &LicenseStatus{
@@ -154,29 +156,36 @@ func (s *LicenseService) ActivateOnline(serialKey string) error {
 	})
 
 	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Post(activationServerURL, "application/json", bytes.NewBuffer(reqBody))
+
+	req, err := http.NewRequest("POST", activationServerURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return errors.New("Gagal membuat request aktivasi.")
+	}
+	// PENTING: tambahkan Accept header agar Laravel selalu return JSON (bukan HTML)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return errors.New("Gagal menghubungi server aktivasi. Pastikan koneksi internet tersedia.")
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.New("Gagal membaca respon dari server")
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
 		var errResp struct {
 			Message string `json:"message"`
 		}
 		json.Unmarshal(body, &errResp)
-		
+
 		if errResp.Message != "" {
 			return errors.New(errResp.Message)
 		}
-		// Jika tidak ada pesan JSON, tampilkan mentahnya
 		return fmt.Errorf("Server Error (%d): %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return errors.New("Gagal membaca respon dari server")
 	}
 
 	// Simpan blob dan verifikasi
@@ -237,6 +246,8 @@ func verifyLicense(licenseText, deviceID string) (bool, LicensePayload, string) 
 		return false, LicensePayload{}, "Signature base64 invalid"
 	}
 	msg := []byte(formatLicensePayload(lf.Payload))
+	fmt.Printf("DEBUG Go Msg: [%s]\n", string(msg))
+	fmt.Printf("DEBUG Go Sig: [%s]\n", lf.Signature)
 	if !ed25519.Verify(pubKey, msg, sig) {
 		return false, LicensePayload{}, "Signature tidak valid"
 	}
@@ -244,7 +255,13 @@ func verifyLicense(licenseText, deviceID string) (bool, LicensePayload, string) 
 }
 
 func formatLicensePayload(p LicensePayload) string {
-	return fmt.Sprintf("%s|%s|%s|%s", p.IssuedTo, p.DeviceID, p.IssuedAt, p.Expiry)
+	return fmt.Sprintf("%s|%s|%s|%s|%s",
+		strings.TrimSpace(p.IssuedTo),
+		strings.TrimSpace(p.DeviceID),
+		strings.TrimSpace(p.IssuedAt),
+		strings.TrimSpace(p.Expiry),
+		strings.TrimSpace(p.SerialKey),
+	)
 }
 
 func getDeviceID() string {

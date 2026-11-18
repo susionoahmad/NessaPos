@@ -8,6 +8,22 @@
       </div>
     </div>
 
+    <div class="search-toolbar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Cari nama produk atau barcode..."
+        />
+        <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''" title="Hapus pencarian">&times;</button>
+      </div>
+      <div class="search-count">
+        Menampilkan <strong>{{ filteredProducts.length }}</strong> dari <strong>{{ products.length }}</strong> produk
+      </div>
+    </div>
+
     <div class="table-container">
       <table>
         <thead>
@@ -22,7 +38,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in products" :key="p.id">
+          <tr v-if="filteredProducts.length === 0">
+            <td colspan="7" class="empty-search-row">
+              {{ searchQuery ? `Produk "${searchQuery}" tidak ditemukan.` : 'Belum ada data produk.' }}
+            </td>
+          </tr>
+          <tr v-for="p in filteredProducts" :key="p.id">
             <td class="font-mono">{{ p.barcode }}</td>
             <td class="font-bold">{{ p.name }}</td>
             <td class="text-dim">Rp {{ (p.cost_price || 0).toLocaleString() }}</td>
@@ -234,13 +255,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { GetProducts, CreateProduct, UpdateProduct, UpdateProductStock, DeleteProduct, RecordStockMutation, ImportExcel } from '../../wailsjs/go/api/API'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import { useAuthStore } from '../store/auth'
 
 const auth = useAuthStore()
 const products = ref<any[]>([])
+const searchQuery = ref('')
+
+const filteredProducts = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return products.value
+  return products.value.filter(p =>
+    String(p.name || '').toLowerCase().includes(q) ||
+    String(p.barcode || '').toLowerCase().includes(q)
+  )
+})
 const showForm = ref(false)
 const showMutate = ref(false)
 const isEdit = ref(false)
@@ -450,6 +481,80 @@ const triggerFileSelect = () => {
   box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
 }
 
+.search-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+  max-width: 440px;
+}
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 11px 36px 11px 40px;
+  background: white;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.search-clear:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+.search-count {
+  font-size: 13px;
+  color: #64748b;
+}
+.search-count strong {
+  color: #0f172a;
+}
+.empty-search-row {
+  text-align: center;
+  padding: 40px 16px !important;
+  color: #64748b !important;
+  font-weight: 600;
+}
+
 .table-container {
   background: white;
   border-radius: 16px;
@@ -457,7 +562,7 @@ const triggerFileSelect = () => {
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
   overflow-y: auto;
   border: 1px solid #e2e8f0;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 255px);
 }
 
 table {
